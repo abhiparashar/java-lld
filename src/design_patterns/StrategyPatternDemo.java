@@ -98,7 +98,6 @@ class ShoppingCart{
         System.out.println("    Total: $" + calculateTotal());
     }
 
-    // FIXED: Actually call the payment strategy
     public void checkout(){
         if (paymentStrategy == null) {
             System.out.println("❌ Please select a payment method first!");
