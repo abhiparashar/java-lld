@@ -6,13 +6,13 @@ import java.util.List;
 import java.util.Map;
 
 class MenuItem{
-    private final Integer id;
+    private final int id;
     private final String name;
     private final String description;
     private final double price;
-    private final double category;
+    private final String category;
 
-    MenuItem(int id, String name, String description, double price, double category) {
+    MenuItem(int id, String name, String description, double price, String category) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -20,61 +20,76 @@ class MenuItem{
         this.category = category;
     }
 
-    public String getName() {
-        return name;
+    public String getDescription() {
+        return description;
     }
 
-    public double getCategory() {
-        return category;
+    public String getName() {
+        return name;
     }
 
     public double getPrice() {
         return price;
     }
 
-    public String getDescription() {
-        return description;
+    public int getId() {
+        return id;
     }
 
-    public Integer getId() {
-        return id;
+    public String getCategory() {
+        return category;
+    }
+
+    public String getInfo() {
+        return String.format("%s - $%.2f (%s)", name, price, category);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("MenuItem{id=%d, name='%s', price=%.2f, category='%s'}",
+                id, name, price, category);
     }
 }
 
 class MenuCategory{
+    private final List<MenuItem> menuItems;
     private final String name;
-    private  List<MenuItem> items;
 
     MenuCategory(String name) {
+        this.menuItems = new ArrayList<>();
         this.name = name;
-        this.items= new ArrayList<>();
     }
 
     public String getName() {
         return name;
     }
 
-    public List<MenuItem> getItems() {
-        return items;
+    public List<MenuItem> getMenuItems() {
+        return menuItems;
+    }
+
+    public void addItem(MenuItem menuItem){
+        menuItems.add(menuItem);
     }
 }
 
-class MenuManager {
-    private final Map<String, MenuCategory>categories;
+class MenuManager{
     private final Map<Integer, MenuItem>allItems;
+    private final Map<String, MenuCategory>categories;
 
-    MenuManager() {
-        this.categories = new HashMap<>();
+    MenuManager(Map<String, MenuItem> allItems, Map<String, MenuCategory> categories) {
         this.allItems = new HashMap<>();
+        this.categories = new HashMap<>();
     }
-
 
     public void addCategory(String categoryName){
         categories.putIfAbsent(categoryName, new MenuCategory(categoryName));
     }
 
-    public void addMenuItem(MenuItem menuItem){
-        allItems.put(menuItem.getId(), menuItem);
+    public void addMenuItem(MenuItem item){
+        addCategory(item.getCategory());
+        categories.get(item.getCategory()).addItem(item);
+        allItems.put(item.getId(), item);
     }
 }
 
