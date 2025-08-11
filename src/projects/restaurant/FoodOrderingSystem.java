@@ -1,9 +1,6 @@
 package projects.restaurant;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 class MenuItem{
     private final int id;
@@ -90,6 +87,84 @@ class MenuManager{
         addCategory(item.getCategory());
         categories.get(item.getCategory()).addItem(item);
         allItems.put(item.getId(), item);
+    }
+
+    public MenuItem  getItemById(int id){
+       return allItems.get(id);
+    }
+
+    public List<MenuItem> getItemsByCategory(String categoryName){
+        MenuCategory menuCategory = categories.get(categoryName);
+        return menuCategory != null ? menuCategory.getMenuItems() : new ArrayList<>();
+    }
+
+    public Set<String> getAllCategories() {
+        return new HashSet<>(categories.keySet());
+    }
+}
+
+class OrderItem{
+    private final MenuItem menuItem;
+    private final int quantity;
+    private final List<String>customizations;
+
+    OrderItem(MenuItem menuItem, int quantity) {
+        this.menuItem = menuItem;
+        this.quantity = quantity;
+        this.customizations = new ArrayList<>();
+    }
+
+    public int getPrice(){
+        return (int) (menuItem.getPrice() * quantity);
+    }
+
+    public MenuItem getMenuItem() {
+        return menuItem;
+    }
+
+    public String getDescription() {
+        StringBuilder desc = new StringBuilder(menuItem.getName() + " x" + quantity);
+        if (!customizations.isEmpty()) {
+            desc.append(" (").append(String.join(", ", customizations)).append(")");
+        }
+        return desc.toString();
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public List<String> getCustomizations() {
+        return new ArrayList<>(customizations);
+    }
+}
+
+class CustomerInfo{
+    private final String name;
+    private final String phoneNumber;
+    private final String email;
+
+    CustomerInfo(String name, String phoneNumber, String email) {
+        this.name = name;
+        this.phoneNumber = phoneNumber;
+        this.email = email;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("CustomerInfo{name='%s', phone='%s', email='%s'}", name, phoneNumber, email);
     }
 }
 
