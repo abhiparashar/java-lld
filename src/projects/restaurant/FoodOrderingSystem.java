@@ -108,7 +108,7 @@ class OrderItem{
     private final int quantity;
     private final List<String>customizations;
 
-    OrderItem(MenuItem menuItem, int quantity) {
+    OrderItem(MenuItem menuItem, int quantity, List<String> customizations) {
         this.menuItem = menuItem;
         this.quantity = quantity;
         this.customizations = new ArrayList<>();
@@ -167,6 +167,65 @@ class CustomerInfo{
         return String.format("CustomerInfo{name='%s', phone='%s', email='%s'}", name, phoneNumber, email);
     }
 }
+
+// Builder Pattern Implementation
+class OrderBuilder  {
+    private final List<OrderItem> orderItems;
+    private final CustomerInfo customerInfo;
+    private final String deliveryAddress;
+    private final String specialInstructions;
+
+    private OrderBuilder (Builder builder) {
+        this.orderItems = new ArrayList<>(builder.orderItems);
+        this.customerInfo = builder.customerInfo;
+        this.deliveryAddress = builder.deliveryAddress;
+        this.specialInstructions = builder.specialInstructions;
+    }
+
+    public static class Builder {
+        private List<OrderItem> orderItems = new ArrayList<>();
+        private CustomerInfo customerInfo;
+        private String deliveryAddress;
+        private String specialInstructions = "";
+
+        public Builder addItem(MenuItem menuItem, int quantity) {
+            return addItem(menuItem, quantity, new ArrayList<>());
+        }
+
+        public Builder addItem(MenuItem menuItem, int quantity, List<String> customizations) {
+            orderItems.add(new OrderItem(menuItem, quantity, customizations));
+            return this;
+        }
+
+        public Builder setCustomerInfo(String name, String phone, String email) {
+            this.customerInfo = new CustomerInfo(name, phone, email);
+            return this;
+        }
+
+        public Builder setDeliveryAddress(String deliveryAddress) {
+            this.deliveryAddress = deliveryAddress;
+            return this;
+        }
+
+        public Builder setSpecialInstructions(String specialInstructions) {
+            this.specialInstructions = specialInstructions;
+            return this;
+        }
+
+        public OrderBuilder build() {
+            if (orderItems.isEmpty()) {
+                throw new IllegalStateException("Order must contain at least one item");
+            }
+            if (customerInfo == null) {
+                throw new IllegalStateException("Customer information is required");
+            }
+            return new OrderBuilder(this);
+        }
+    }
+}
+
+// STATE PATTERN - For Order Status Management
+
 
 public class FoodOrderingSystem {
     public static void main(String[] args) {
