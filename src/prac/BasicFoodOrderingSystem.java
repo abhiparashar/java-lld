@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+// Same MenuItem, MenuCategory, CustomerInfo classes (unchanged from Phase 2)
 class MenuItem {
     private final String name;
     private final String description;
@@ -80,6 +81,7 @@ class CustomerInfo {
     }
 }
 
+// Same OrderItem class (unchanged from Phase 2)
 class OrderItem {
     private final MenuItem menuItem;
     private final int quantity;
@@ -88,7 +90,7 @@ class OrderItem {
     OrderItem(MenuItem menuItem, int quantity, List<String> customizations) {
         this.menuItem = menuItem;
         this.quantity = quantity;
-        this.customizations = new ArrayList<>(customizations); // Defensive copy
+        this.customizations = new ArrayList<>(customizations);
     }
 
     public List<String> getCustomizations() {
@@ -116,10 +118,14 @@ class OrderItem {
     }
 }
 
-abstract class OrderState{
-    protected Order order;
+// ============================================================================
+// STATE PATTERN IMPLEMENTATION - Each order status is now a proper class
+// ============================================================================
 
-    public OrderState(Order order){
+abstract class OrderState {
+    protected Order order;  // Reference to the order this state belongs to
+
+    public OrderState(Order order) {
         this.order = order;
     }
 
@@ -138,12 +144,12 @@ abstract class OrderState{
         if (canCancel()) {
             order.setState(new CancelledState(order));
         } else {
-            System.out.println("Cannot cancel order in " + getStatusName() + " state");
+            System.out.println("❌ Cannot cancel order in " + getStatusName() + " state");
         }
     }
 }
 
-class PendingState extends OrderState{
+class PendingState extends OrderState {
     public PendingState(Order order) {
         super(order);
     }
@@ -161,17 +167,16 @@ class PendingState extends OrderState{
 
     @Override
     public boolean canCancel() {
-        return true;
+        return true;  // Can cancel when pending
     }
 
     @Override
     public boolean canModify() {
-        return true;
+        return true;  // Can modify when pending
     }
 }
 
-class ConfirmedState extends OrderState{
-
+class ConfirmedState extends OrderState {
     public ConfirmedState(Order order) {
         super(order);
     }
@@ -189,17 +194,16 @@ class ConfirmedState extends OrderState{
 
     @Override
     public boolean canCancel() {
-        return true;
+        return true;  // Can still cancel when confirmed
     }
 
     @Override
     public boolean canModify() {
-        return false;
+        return false; // Cannot modify once confirmed
     }
 }
 
-class PreparingState extends OrderState{
-
+class PreparingState extends OrderState {
     public PreparingState(Order order) {
         super(order);
     }
@@ -217,12 +221,12 @@ class PreparingState extends OrderState{
 
     @Override
     public boolean canCancel() {
-        return false;
+        return false; // Cannot cancel when being prepared
     }
 
     @Override
     public boolean canModify() {
-        return false;
+        return false; // Cannot modify when being prepared
     }
 }
 
@@ -332,39 +336,40 @@ class CancelledState extends OrderState {
     }
 }
 
+// ============================================================================
+// ENHANCED ORDER CLASS - Now uses State Pattern instead of String status
+// ============================================================================
+
 class Order {
     private final List<OrderItem> orderItems;
     private final CustomerInfo customerInfo;
     private final String email;
     private final String deliveryAddress;
     private final String specialInstructions;
-    private OrderState orderState;
+    private OrderState currentState;  // STATE OBJECT instead of String status!
 
+    // Private constructor that accepts Builder
     private Order(Builder builder) {
         this.orderItems = new ArrayList<>(builder.orderItems);
         this.customerInfo = builder.customerInfo;
         this.email = builder.email;
         this.deliveryAddress = builder.deliveryAddress;
         this.specialInstructions = builder.specialInstructions;
-        this.orderState = new PendingState(this);
+        this.currentState = new PendingState(this);  // Start in PENDING state
     }
 
+    // Builder Pattern (same as Phase 2)
     public static class Builder {
-        // Required fields
         private CustomerInfo customerInfo;
-
-        // Optional fields
         private List<OrderItem> orderItems = new ArrayList<>();
         private String email = "";
         private String deliveryAddress = "";
         private String specialInstructions = "";
 
-        // Constructor for required fields
         public Builder(String customerName, String customerPhone) {
             this.customerInfo = new CustomerInfo(customerName, customerPhone);
         }
 
-        // FIX #3: Fluent methods that return this
         public Builder setEmail(String email) {
             this.email = email;
             return this;
@@ -385,7 +390,6 @@ class Order {
             return this;
         }
 
-        // Convenience method for no customizations
         public Builder addItem(MenuItem item, int quantity) {
             return addItem(item, quantity, new ArrayList<>());
         }
@@ -397,38 +401,43 @@ class Order {
             if (customerInfo.getCustomerName() == null || customerInfo.getCustomerName().trim().isEmpty()) {
                 throw new IllegalStateException("Customer name is required");
             }
-
             return new Order(this);
         }
     }
 
+    // ============================================================================
     // STATE MANAGEMENT METHODS - Delegate to current state
+    // ============================================================================
+
     public void setState(OrderState newState) {
-        this.orderState = newState;
+        this.currentState = newState;
         System.out.println("📱 Order status changed to: " + getStatus());
     }
 
     public void processNextStep() {
-        orderState.nextStep();  // Delegate to current state
+        currentState.nextStep();  // Delegate to current state
     }
 
     public void cancel() {
-        orderState.cancel();
+        currentState.cancel();    // Delegate to current state
     }
 
     public boolean canCancel() {
-        return orderState.canCancel();  // Ask current state
+        return currentState.canCancel();  // Ask current state
     }
 
     public boolean canModify() {
-        return orderState.canModify();  // Ask current state
+        return currentState.canModify();  // Ask current state
     }
 
     public String getStatus() {
-        return orderState.getStatusName();  // Get from current state
+        return currentState.getStatusName();  // Get from current state
     }
 
+    // ============================================================================
     // OTHER ORDER METHODS (unchanged from Phase 2)
+    // ============================================================================
+
     public double getTotalValue() {
         double total = 0;
         for (OrderItem item : orderItems) {
@@ -445,6 +454,7 @@ class Order {
         return new ArrayList<>(orderItems);
     }
 
+    // ENHANCED display showing state capabilities
     public void displaySummary() {
         System.out.println("\n" + "=".repeat(50));
         System.out.println("ORDER SUMMARY");
@@ -459,8 +469,12 @@ class Order {
             System.out.println("Delivery Address: " + deliveryAddress);
         }
 
-        System.out.println("Items:");
+        // SHOW STATE AND CAPABILITIES
+        System.out.println("Status: " + getStatus() +
+                " (Can cancel: " + canCancel() +
+                ", Can modify: " + canModify() + ")");
 
+        System.out.println("Items:");
         for (OrderItem item : orderItems) {
             System.out.printf("  - %s: $%.2f%n",
                     item.getDescription(), item.getTotalPrice());
@@ -488,17 +502,21 @@ class OrderSummary {
     }
 }
 
-class SimpleRestaurant{
-    private final List<Order>orders;
-    private final List<MenuCategory>categories;
+// ============================================================================
+// UPDATED RESTAURANT CLASS - Now works with State Pattern
+// ============================================================================
+
+class SimpleRestaurant {
+    private final List<MenuCategory> categories;
+    private final List<Order> orders;
 
     SimpleRestaurant() {
-        this.orders = new ArrayList<>();
         this.categories = new ArrayList<>();
+        this.orders = new ArrayList<>();
         initializeMenu();
     }
 
-    private void initializeMenu(){
+    private void initializeMenu() {
         // Create Pizza category
         MenuCategory pizza = new MenuCategory("Pizza");
         pizza.addMenuItem(new MenuItem("Margherita", "Classic tomato and mozzarella", 12.99));
@@ -521,10 +539,10 @@ class SimpleRestaurant{
         categories.add(beverages);
     }
 
-    public void displayMenu(){
+    public void displayMenu() {
         System.out.println("📋 RESTAURANT MENU");
         System.out.println("=".repeat(40));
-        for (MenuCategory category : categories){
+        for (MenuCategory category : categories) {
             category.displayItems();
         }
         System.out.println("=".repeat(40));
