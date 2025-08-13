@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-// Your MenuItem, MenuCategory, CustomerInfo classes are PERFECT - no changes needed!
-
 class MenuItem {
     private final String name;
     private final String description;
@@ -82,7 +80,6 @@ class CustomerInfo {
     }
 }
 
-// FIX #1: Update OrderItem's getDescription() to show customizations
 class OrderItem {
     private final MenuItem menuItem;
     private final int quantity;
@@ -110,7 +107,6 @@ class OrderItem {
         return menuItem.getAmount() * quantity;
     }
 
-    // FIX #1: Show customizations in description
     public String getDescription() {
         StringBuilder desc = new StringBuilder(menuItem.getName() + " x" + quantity);
         if (!customizations.isEmpty()) {
@@ -120,26 +116,239 @@ class OrderItem {
     }
 }
 
-// FIX #2: MAJOR RESTRUCTURING - Move Builder INSIDE Order class
+abstract class OrderState{
+    protected Order order;
+
+    public OrderState(Order order){
+        this.order = order;
+    }
+
+    // Each state knows how to handle the next step
+    public abstract void nextStep();
+
+    // Each state knows its name
+    public abstract String getStatusName();
+
+    // Each state knows its own business rules
+    public boolean canCancel() { return false; }  // Default: cannot cancel
+    public boolean canModify() { return false; }  // Default: cannot modify
+
+    // Handle cancellation
+    public void cancel() {
+        if (canCancel()) {
+            order.setState(new CancelledState(order));
+        } else {
+            System.out.println("Cannot cancel order in " + getStatusName() + " state");
+        }
+    }
+}
+
+class PendingState extends OrderState{
+    public PendingState(Order order) {
+        super(order);
+    }
+
+    @Override
+    public void nextStep() {
+        System.out.println("✅ Order confirmed! Moving to preparation...");
+        order.setState(new ConfirmedState(order));
+    }
+
+    @Override
+    public String getStatusName() {
+        return "PENDING";
+    }
+
+    @Override
+    public boolean canCancel() {
+        return true;
+    }
+
+    @Override
+    public boolean canModify() {
+        return true;
+    }
+}
+
+class ConfirmedState extends OrderState{
+
+    public ConfirmedState(Order order) {
+        super(order);
+    }
+
+    @Override
+    public void nextStep() {
+        System.out.println("👨‍🍳 Kitchen started preparing your order...");
+        order.setState(new PreparingState(order));
+    }
+
+    @Override
+    public String getStatusName() {
+        return "CONFIRMED";
+    }
+
+    @Override
+    public boolean canCancel() {
+        return true;
+    }
+
+    @Override
+    public boolean canModify() {
+        return false;
+    }
+}
+
+class PreparingState extends OrderState{
+
+    public PreparingState(Order order) {
+        super(order);
+    }
+
+    @Override
+    public void nextStep() {
+        System.out.println("🍕 Order is ready for pickup/delivery!");
+        order.setState(new ReadyState(order));
+    }
+
+    @Override
+    public String getStatusName() {
+        return "PREPARING";
+    }
+
+    @Override
+    public boolean canCancel() {
+        return false;
+    }
+
+    @Override
+    public boolean canModify() {
+        return false;
+    }
+}
+
+class ReadyState extends OrderState {
+    public ReadyState(Order order) {
+        super(order);
+    }
+
+    @Override
+    public void nextStep() {
+        System.out.println("🚚 Order is out for delivery!");
+        order.setState(new InTransitState(order));
+    }
+
+    @Override
+    public String getStatusName() {
+        return "READY";
+    }
+
+    @Override
+    public boolean canCancel() {
+        return false; // Cannot cancel when ready
+    }
+
+    @Override
+    public boolean canModify() {
+        return false; // Cannot modify when ready
+    }
+}
+
+class InTransitState extends OrderState {
+    public InTransitState(Order order) {
+        super(order);
+    }
+
+    @Override
+    public void nextStep() {
+        System.out.println("🎉 Order delivered successfully!");
+        order.setState(new DeliveredState(order));
+    }
+
+    @Override
+    public String getStatusName() {
+        return "IN_TRANSIT";
+    }
+
+    @Override
+    public boolean canCancel() {
+        return false; // Cannot cancel when in transit
+    }
+
+    @Override
+    public boolean canModify() {
+        return false; // Cannot modify when in transit
+    }
+}
+
+class DeliveredState extends OrderState {
+    public DeliveredState(Order order) {
+        super(order);
+    }
+
+    @Override
+    public void nextStep() {
+        System.out.println("✨ Order already delivered! No further action needed.");
+    }
+
+    @Override
+    public String getStatusName() {
+        return "DELIVERED";
+    }
+
+    @Override
+    public boolean canCancel() {
+        return false; // Cannot cancel when delivered
+    }
+
+    @Override
+    public boolean canModify() {
+        return false; // Cannot modify when delivered
+    }
+}
+
+class CancelledState extends OrderState {
+    public CancelledState(Order order) {
+        super(order);
+    }
+
+    @Override
+    public void nextStep() {
+        System.out.println("❌ Order was cancelled. No further processing possible.");
+    }
+
+    @Override
+    public String getStatusName() {
+        return "CANCELLED";
+    }
+
+    @Override
+    public boolean canCancel() {
+        return false; // Already cancelled
+    }
+
+    @Override
+    public boolean canModify() {
+        return false; // Cannot modify cancelled order
+    }
+}
+
 class Order {
     private final List<OrderItem> orderItems;
     private final CustomerInfo customerInfo;
-    private final String email;              // NEW
-    private final String deliveryAddress;    // NEW
-    private final String specialInstructions; // NEW
-    private String status;
+    private final String email;
+    private final String deliveryAddress;
+    private final String specialInstructions;
+    private OrderState orderState;
 
-    // FIX #2: PRIVATE constructor that accepts Builder
     private Order(Builder builder) {
         this.orderItems = new ArrayList<>(builder.orderItems);
         this.customerInfo = builder.customerInfo;
         this.email = builder.email;
         this.deliveryAddress = builder.deliveryAddress;
         this.specialInstructions = builder.specialInstructions;
-        this.status = "PENDING";
+        this.orderState = new PendingState(this);
     }
 
-    // FIX #2: Builder is NESTED INSIDE Order class
     public static class Builder {
         // Required fields
         private CustomerInfo customerInfo;
@@ -171,7 +380,6 @@ class Order {
             return this;
         }
 
-        // FIX #3: addItem that ACTUALLY stores the item
         public Builder addItem(MenuItem item, int quantity, List<String> customizations) {
             this.orderItems.add(new OrderItem(item, quantity, customizations));
             return this;
@@ -182,9 +390,7 @@ class Order {
             return addItem(item, quantity, new ArrayList<>());
         }
 
-        // FIX #4: build() creates ORDER, not OrderBuilder!
         public Order build() {
-            // FIX #5: Add validation
             if (orderItems.isEmpty()) {
                 throw new IllegalStateException("Order must contain at least one item");
             }
@@ -192,26 +398,43 @@ class Order {
                 throw new IllegalStateException("Customer name is required");
             }
 
-            return new Order(this); // Create ORDER, not OrderBuilder!
+            return new Order(this);
         }
     }
 
-    // Rest of Order methods
+    // STATE MANAGEMENT METHODS - Delegate to current state
+    public void setState(OrderState newState) {
+        this.orderState = newState;
+        System.out.println("📱 Order status changed to: " + getStatus());
+    }
+
+    public void processNextStep() {
+        orderState.nextStep();  // Delegate to current state
+    }
+
+    public void cancel() {
+        orderState.cancel();
+    }
+
+    public boolean canCancel() {
+        return orderState.canCancel();  // Ask current state
+    }
+
+    public boolean canModify() {
+        return orderState.canModify();  // Ask current state
+    }
+
+    public String getStatus() {
+        return orderState.getStatusName();  // Get from current state
+    }
+
+    // OTHER ORDER METHODS (unchanged from Phase 2)
     public double getTotalValue() {
         double total = 0;
         for (OrderItem item : orderItems) {
             total += item.getTotalPrice();
         }
         return total;
-    }
-
-    public void updateStatus(String newStatus) {
-        this.status = newStatus;
-        System.out.println("📱 Order status updated to: " + newStatus);
-    }
-
-    public String getStatus() {
-        return status;
     }
 
     public CustomerInfo getCustomerInfo() {
@@ -222,7 +445,6 @@ class Order {
         return new ArrayList<>(orderItems);
     }
 
-    // FIX #6: Enhanced display showing new fields
     public void displaySummary() {
         System.out.println("\n" + "=".repeat(50));
         System.out.println("ORDER SUMMARY");
@@ -237,7 +459,6 @@ class Order {
             System.out.println("Delivery Address: " + deliveryAddress);
         }
 
-        System.out.println("Status: " + status);
         System.out.println("Items:");
 
         for (OrderItem item : orderItems) {
@@ -267,41 +488,43 @@ class OrderSummary {
     }
 }
 
-// FIX #7: Update SimpleRestaurant to use Builder
-class SimpleRestaurant {
-    private final List<MenuCategory> categories;
-    private final List<Order> orders;
+class SimpleRestaurant{
+    private final List<Order>orders;
+    private final List<MenuCategory>categories;
 
     SimpleRestaurant() {
-        this.categories = new ArrayList<>();
         this.orders = new ArrayList<>();
+        this.categories = new ArrayList<>();
         initializeMenu();
     }
 
-    private void initializeMenu() {
+    private void initializeMenu(){
         // Create Pizza category
         MenuCategory pizza = new MenuCategory("Pizza");
         pizza.addMenuItem(new MenuItem("Margherita", "Classic tomato and mozzarella", 12.99));
         pizza.addMenuItem(new MenuItem("Pepperoni", "Pepperoni with cheese", 14.99));
+        pizza.addMenuItem(new MenuItem("Quattro Stagioni", "Four seasons pizza", 16.99));
         categories.add(pizza);
 
         // Create Burger category
         MenuCategory burgers = new MenuCategory("Burgers");
         burgers.addMenuItem(new MenuItem("Cheeseburger", "Beef with cheese", 9.99));
         burgers.addMenuItem(new MenuItem("Chicken Burger", "Grilled chicken", 8.99));
+        burgers.addMenuItem(new MenuItem("Veggie Burger", "Plant-based patty", 10.99));
         categories.add(burgers);
 
         // Create Beverages category
         MenuCategory beverages = new MenuCategory("Beverages");
         beverages.addMenuItem(new MenuItem("Coca Cola", "Refreshing cola", 2.99));
         beverages.addMenuItem(new MenuItem("Water", "Bottled water", 1.99));
+        beverages.addMenuItem(new MenuItem("Orange Juice", "Fresh squeezed", 4.99));
         categories.add(beverages);
     }
 
-    public void displayMenu() {
+    public void displayMenu(){
         System.out.println("📋 RESTAURANT MENU");
         System.out.println("=".repeat(40));
-        for (MenuCategory category : categories) {
+        for (MenuCategory category : categories){
             category.displayItems();
         }
         System.out.println("=".repeat(40));
@@ -319,7 +542,6 @@ class SimpleRestaurant {
         return null;
     }
 
-    // FIX #7: Return Builder instead of Order
     public Order.Builder createOrderBuilder(String customerName, String customerPhone) {
         return new Order.Builder(customerName, customerPhone);
     }
@@ -330,32 +552,20 @@ class SimpleRestaurant {
         order.displaySummary();
     }
 
+    // SIMPLIFIED - just delegate to order's state
     public void processOrder(Order order) {
-        String currentStatus = order.getStatus();
-        switch (currentStatus) {
-            case "PENDING":
-                order.updateStatus("CONFIRMED");
-                break;
-            case "CONFIRMED":
-                order.updateStatus("PREPARING");
-                break;
-            case "PREPARING":
-                order.updateStatus("READY");
-                break;
-            case "READY":
-                order.updateStatus("DELIVERED");
-                break;
-            default:
-                System.out.println("Order already completed");
-        }
+        order.processNextStep();
+    }
+
+    // NEW - Handle cancellation through state
+    public void cancelOrder(Order order) {
+        order.cancel();
     }
 }
 
-// DELETE YOUR SEPARATE OrderBuilder CLASS - IT'S NOW INSIDE Order!
-
 public class BasicFoodOrderingSystem {
     public static void main(String[] args) {
-        System.out.println("🍕 PHASE 2: FIXED BUILDER PATTERN 🍕\n");
+        System.out.println("🍕 PHASE 3: STATE PATTERN FOOD ORDERING 🍕\n");
 
         // Create restaurant
         SimpleRestaurant restaurant = new SimpleRestaurant();
@@ -368,47 +578,79 @@ public class BasicFoodOrderingSystem {
         MenuItem cheeseburger = restaurant.findMenuItem("Burgers", 1);
         MenuItem cola = restaurant.findMenuItem("Beverages", 1);
 
-        System.out.println("\n🎯 DEMONSTRATING FIXED BUILDER PATTERN:\n");
+        System.out.println("\n🎯 DEMONSTRATING STATE PATTERN BENEFITS:\n");
 
-        // FIX #8: Working demo using Builder properly
-        System.out.println("📝 Example 1: Simple Order");
-        Order simpleOrder = restaurant.createOrderBuilder("Alice Smith", "+1-555-0001")
-                .addItem(margherita, 1)
+        // Example 1: Normal order flow
+        System.out.println("📝 Example 1: Normal Order Processing");
+        Order order1 = restaurant.createOrderBuilder("Alice Smith", "+1-555-0001")
+                .setEmail("alice@email.com")
+                .setDeliveryAddress("123 State Street")
+                .addItem(margherita, 2, Arrays.asList("Extra cheese", "Thin crust"))
+                .addItem(cola, 1)
+                .build();
+
+        restaurant.placeOrder(order1);
+
+        // Show state transitions
+        System.out.println("\n🔄 Processing through states...");
+        System.out.println("Current status: " + order1.getStatus() +
+                " | Can cancel: " + order1.canCancel());
+
+        restaurant.processOrder(order1); // PENDING -> CONFIRMED
+        restaurant.processOrder(order1); // CONFIRMED -> PREPARING
+
+        System.out.println("Current status: " + order1.getStatus() +
+                " | Can cancel: " + order1.canCancel());
+
+        restaurant.processOrder(order1); // PREPARING -> READY
+        restaurant.processOrder(order1); // READY -> IN_TRANSIT
+        restaurant.processOrder(order1); // IN_TRANSIT -> DELIVERED
+
+        // Try to process completed order
+        restaurant.processOrder(order1); // Should show "already delivered"
+
+        // Example 2: Cancellation rules
+        System.out.println("\n📝 Example 2: Testing Cancellation Rules");
+        Order order2 = restaurant.createOrderBuilder("Bob Johnson", "+1-555-0002")
+                .addItem(cheeseburger, 1, Arrays.asList("No onions"))
                 .addItem(cola, 2)
                 .build();
 
-        restaurant.placeOrder(simpleOrder);
+        restaurant.placeOrder(order2);
 
-        System.out.println("\n📝 Example 2: Complex Order with All Features");
-        Order complexOrder = restaurant.createOrderBuilder("Bob Johnson", "+1-555-0002")
-                .setEmail("bob.johnson@email.com")
-                .setDeliveryAddress("789 Work Avenue, Office Building")
-                .setSpecialInstructions("Please call when you arrive, ring doorbell twice")
-                .addItem(margherita, 2, Arrays.asList("Extra cheese", "Thin crust"))
-                .addItem(cheeseburger, 1, Arrays.asList("No onions", "Extra pickles"))
-                .addItem(cola, 3)
+        System.out.println("\nTrying to cancel PENDING order:");
+        restaurant.cancelOrder(order2); // Should work
+
+        System.out.println("\nTrying to cancel CANCELLED order:");
+        restaurant.cancelOrder(order2); // Should fail gracefully
+
+        // Example 3: Invalid state transitions prevented
+        System.out.println("\n📝 Example 3: State Transition Control");
+        Order order3 = restaurant.createOrderBuilder("Charlie Brown", "+1-555-0003")
+                .addItem(margherita, 1)
                 .build();
 
-        restaurant.placeOrder(complexOrder);
+        restaurant.placeOrder(order3);
+        restaurant.processOrder(order3); // PENDING -> CONFIRMED
+        restaurant.processOrder(order3); // CONFIRMED -> PREPARING
 
-        // Test validation
-        System.out.println("\n📝 Example 3: Testing Validation");
-        try {
-            Order invalidOrder = restaurant.createOrderBuilder("", "+1-555-0003")
-                    .build(); // Should fail - no name and no items
-        } catch (IllegalStateException e) {
-            System.out.println("❌ Validation caught error: " + e.getMessage());
-        }
+        System.out.println("\nTrying to cancel PREPARING order:");
+        restaurant.cancelOrder(order3); // Should fail - cannot cancel when preparing
 
-        System.out.println("\n✨ ALL FIXES APPLIED SUCCESSFULLY!");
+        System.out.println("\n✨ PHASE 3 COMPLETE!");
         System.out.println("=".repeat(60));
-        System.out.println("🔧 WHAT WAS FIXED:");
-        System.out.println("  ✅ Builder moved INSIDE Order class");
-        System.out.println("  ✅ build() creates Order, not OrderBuilder");
-        System.out.println("  ✅ addItem() actually stores items");
-        System.out.println("  ✅ Customizations display properly");
-        System.out.println("  ✅ Added validation");
-        System.out.println("  ✅ Working demo showing all features");
+        System.out.println("🎉 STATE PATTERN BENEFITS DEMONSTRATED:");
+        System.out.println("  ✅ No more string status typos");
+        System.out.println("  ✅ Invalid state transitions prevented");
+        System.out.println("  ✅ Business rules encapsulated in states");
+        System.out.println("  ✅ Easy to add new states or modify rules");
+        System.out.println("  ✅ Each state knows its own capabilities");
+        System.out.println("  ✅ Clean separation of state-specific behavior");
         System.out.println("=".repeat(60));
+        System.out.println("\n💭 COMPARE WITH PHASE 2 PROBLEMS:");
+        System.out.println("❌ Phase 2: order.updateStatus(\"DELIVRED\") // Typo!");
+        System.out.println("❌ Phase 2: order.updateStatus(\"PENDING\") // Invalid transition!");
+        System.out.println("✅ Phase 3: States prevent all these problems!");
+        System.out.println("\n🚀 Next Phase: What if we want to undo operations?");
     }
 }
