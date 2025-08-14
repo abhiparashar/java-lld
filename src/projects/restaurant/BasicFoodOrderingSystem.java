@@ -1,4 +1,4 @@
-package prac;
+package projects.restaurant;
 
 import java.util.ArrayList;
 import java.util.Arrays;
