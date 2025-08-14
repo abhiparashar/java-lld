@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-// Same MenuItem, MenuCategory, CustomerInfo classes (unchanged from Phase 2)
+// Same MenuItem, MenuCategory, CustomerInfo classes (unchanged from Phase 3)
 class MenuItem {
     private final String name;
     private final String description;
@@ -81,7 +81,7 @@ class CustomerInfo {
     }
 }
 
-// Same OrderItem class (unchanged from Phase 2)
+// Same OrderItem class (unchanged from Phase 3)
 class OrderItem {
     private final MenuItem menuItem;
     private final int quantity;
@@ -119,27 +119,22 @@ class OrderItem {
 }
 
 // ============================================================================
-// STATE PATTERN IMPLEMENTATION - Each order status is now a proper class
+// STATE PATTERN CLASSES (same as Phase 3)
 // ============================================================================
 
 abstract class OrderState {
-    protected Order order;  // Reference to the order this state belongs to
+    protected Order order;
 
     public OrderState(Order order) {
         this.order = order;
     }
 
-    // Each state knows how to handle the next step
     public abstract void nextStep();
-
-    // Each state knows its name
     public abstract String getStatusName();
 
-    // Each state knows its own business rules
-    public boolean canCancel() { return false; }  // Default: cannot cancel
-    public boolean canModify() { return false; }  // Default: cannot modify
+    public boolean canCancel() { return false; }
+    public boolean canModify() { return false; }
 
-    // Handle cancellation
     public void cancel() {
         if (canCancel()) {
             order.setState(new CancelledState(order));
@@ -150,9 +145,7 @@ abstract class OrderState {
 }
 
 class PendingState extends OrderState {
-    public PendingState(Order order) {
-        super(order);
-    }
+    public PendingState(Order order) { super(order); }
 
     @Override
     public void nextStep() {
@@ -161,25 +154,16 @@ class PendingState extends OrderState {
     }
 
     @Override
-    public String getStatusName() {
-        return "PENDING";
-    }
+    public String getStatusName() { return "PENDING"; }
 
     @Override
-    public boolean canCancel() {
-        return true;  // Can cancel when pending
-    }
-
+    public boolean canCancel() { return true; }
     @Override
-    public boolean canModify() {
-        return true;  // Can modify when pending
-    }
+    public boolean canModify() { return true; }
 }
 
 class ConfirmedState extends OrderState {
-    public ConfirmedState(Order order) {
-        super(order);
-    }
+    public ConfirmedState(Order order) { super(order); }
 
     @Override
     public void nextStep() {
@@ -188,25 +172,16 @@ class ConfirmedState extends OrderState {
     }
 
     @Override
-    public String getStatusName() {
-        return "CONFIRMED";
-    }
+    public String getStatusName() { return "CONFIRMED"; }
 
     @Override
-    public boolean canCancel() {
-        return true;  // Can still cancel when confirmed
-    }
-
+    public boolean canCancel() { return true; }
     @Override
-    public boolean canModify() {
-        return false; // Cannot modify once confirmed
-    }
+    public boolean canModify() { return false; }
 }
 
 class PreparingState extends OrderState {
-    public PreparingState(Order order) {
-        super(order);
-    }
+    public PreparingState(Order order) { super(order); }
 
     @Override
     public void nextStep() {
@@ -215,25 +190,11 @@ class PreparingState extends OrderState {
     }
 
     @Override
-    public String getStatusName() {
-        return "PREPARING";
-    }
-
-    @Override
-    public boolean canCancel() {
-        return false; // Cannot cancel when being prepared
-    }
-
-    @Override
-    public boolean canModify() {
-        return false; // Cannot modify when being prepared
-    }
+    public String getStatusName() { return "PREPARING"; }
 }
 
 class ReadyState extends OrderState {
-    public ReadyState(Order order) {
-        super(order);
-    }
+    public ReadyState(Order order) { super(order); }
 
     @Override
     public void nextStep() {
@@ -242,25 +203,11 @@ class ReadyState extends OrderState {
     }
 
     @Override
-    public String getStatusName() {
-        return "READY";
-    }
-
-    @Override
-    public boolean canCancel() {
-        return false; // Cannot cancel when ready
-    }
-
-    @Override
-    public boolean canModify() {
-        return false; // Cannot modify when ready
-    }
+    public String getStatusName() { return "READY"; }
 }
 
 class InTransitState extends OrderState {
-    public InTransitState(Order order) {
-        super(order);
-    }
+    public InTransitState(Order order) { super(order); }
 
     @Override
     public void nextStep() {
@@ -269,25 +216,11 @@ class InTransitState extends OrderState {
     }
 
     @Override
-    public String getStatusName() {
-        return "IN_TRANSIT";
-    }
-
-    @Override
-    public boolean canCancel() {
-        return false; // Cannot cancel when in transit
-    }
-
-    @Override
-    public boolean canModify() {
-        return false; // Cannot modify when in transit
-    }
+    public String getStatusName() { return "IN_TRANSIT"; }
 }
 
 class DeliveredState extends OrderState {
-    public DeliveredState(Order order) {
-        super(order);
-    }
+    public DeliveredState(Order order) { super(order); }
 
     @Override
     public void nextStep() {
@@ -295,25 +228,11 @@ class DeliveredState extends OrderState {
     }
 
     @Override
-    public String getStatusName() {
-        return "DELIVERED";
-    }
-
-    @Override
-    public boolean canCancel() {
-        return false; // Cannot cancel when delivered
-    }
-
-    @Override
-    public boolean canModify() {
-        return false; // Cannot modify when delivered
-    }
+    public String getStatusName() { return "DELIVERED"; }
 }
 
 class CancelledState extends OrderState {
-    public CancelledState(Order order) {
-        super(order);
-    }
+    public CancelledState(Order order) { super(order); }
 
     @Override
     public void nextStep() {
@@ -321,44 +240,39 @@ class CancelledState extends OrderState {
     }
 
     @Override
-    public String getStatusName() {
-        return "CANCELLED";
-    }
-
-    @Override
-    public boolean canCancel() {
-        return false; // Already cancelled
-    }
-
-    @Override
-    public boolean canModify() {
-        return false; // Cannot modify cancelled order
-    }
+    public String getStatusName() { return "CANCELLED"; }
 }
 
 // ============================================================================
-// ENHANCED ORDER CLASS - Now uses State Pattern instead of String status
+// ORDER CLASS (same as Phase 3, but with ID generation for tracking)
 // ============================================================================
 
 class Order {
+    private final String orderId;  // NEW: ID for tracking
     private final List<OrderItem> orderItems;
     private final CustomerInfo customerInfo;
     private final String email;
     private final String deliveryAddress;
     private final String specialInstructions;
-    private OrderState currentState;  // STATE OBJECT instead of String status!
+    private OrderState currentState;
 
-    // Private constructor that accepts Builder
     private Order(Builder builder) {
+        this.orderId = generateOrderId();  // NEW: Generate unique ID
         this.orderItems = new ArrayList<>(builder.orderItems);
         this.customerInfo = builder.customerInfo;
         this.email = builder.email;
         this.deliveryAddress = builder.deliveryAddress;
         this.specialInstructions = builder.specialInstructions;
-        this.currentState = new PendingState(this);  // Start in PENDING state
+        this.currentState = new PendingState(this);
     }
 
-    // Builder Pattern (same as Phase 2)
+    // NEW: Generate unique order ID
+    private String generateOrderId() {
+        return "ORD-" + System.currentTimeMillis() + "-" +
+                Integer.toHexString(hashCode()).toUpperCase().substring(0, 4);
+    }
+
+    // Builder Pattern (same as Phase 3)
     public static class Builder {
         private CustomerInfo customerInfo;
         private List<OrderItem> orderItems = new ArrayList<>();
@@ -405,39 +319,33 @@ class Order {
         }
     }
 
-    // ============================================================================
-    // STATE MANAGEMENT METHODS - Delegate to current state
-    // ============================================================================
-
+    // State management methods (same as Phase 3)
     public void setState(OrderState newState) {
         this.currentState = newState;
-        System.out.println("📱 Order status changed to: " + getStatus());
+        System.out.println("📱 Order " + orderId + " status changed to: " + getStatus());
     }
 
     public void processNextStep() {
-        currentState.nextStep();  // Delegate to current state
+        currentState.nextStep();
     }
 
     public void cancel() {
-        currentState.cancel();    // Delegate to current state
+        currentState.cancel();
     }
 
     public boolean canCancel() {
-        return currentState.canCancel();  // Ask current state
+        return currentState.canCancel();
     }
 
     public boolean canModify() {
-        return currentState.canModify();  // Ask current state
+        return currentState.canModify();
     }
 
     public String getStatus() {
-        return currentState.getStatusName();  // Get from current state
+        return currentState.getStatusName();
     }
 
-    // ============================================================================
-    // OTHER ORDER METHODS (unchanged from Phase 2)
-    // ============================================================================
-
+    // Other methods
     public double getTotalValue() {
         double total = 0;
         for (OrderItem item : orderItems) {
@@ -446,18 +354,9 @@ class Order {
         return total;
     }
 
-    public CustomerInfo getCustomerInfo() {
-        return customerInfo;
-    }
-
-    public List<OrderItem> getOrderItems() {
-        return new ArrayList<>(orderItems);
-    }
-
-    // ENHANCED display showing state capabilities
     public void displaySummary() {
         System.out.println("\n" + "=".repeat(50));
-        System.out.println("ORDER SUMMARY");
+        System.out.println("ORDER SUMMARY - " + orderId);
         System.out.println("Customer: " + customerInfo.getCustomerName());
         System.out.println("Phone: " + customerInfo.getNumber());
 
@@ -469,7 +368,6 @@ class Order {
             System.out.println("Delivery Address: " + deliveryAddress);
         }
 
-        // SHOW STATE AND CAPABILITIES
         System.out.println("Status: " + getStatus() +
                 " (Can cancel: " + canCancel() +
                 ", Can modify: " + canModify() + ")");
@@ -488,31 +386,266 @@ class Order {
 
         System.out.println("=".repeat(50));
     }
+
+    // NEW: Getters for Command pattern
+    public String getOrderId() { return orderId; }
+    public CustomerInfo getCustomerInfo() { return customerInfo; }
+    public List<OrderItem> getOrderItems() { return new ArrayList<>(orderItems); }
+    public OrderState getCurrentState() { return currentState; }  // For commands to save state
 }
 
-class OrderSummary {
+// ============================================================================
+// COMMAND PATTERN IMPLEMENTATION - The new functionality!
+// ============================================================================
+
+interface Command {
+    boolean execute();  // Perform the operation
+    void undo();        // Reverse the operation
+    String getDescription(); // For logging/history display
+}
+
+class PlaceOrderCommand implements Command {
+    private final OrderManager orderManager;
     private final Order order;
 
-    OrderSummary(Order order) {
+    public PlaceOrderCommand(OrderManager orderManager, Order order) {
+        this.orderManager = orderManager;
         this.order = order;
     }
 
-    public void printSummary() {
-        order.displaySummary();
+    @Override
+    public boolean execute() {
+        orderManager.addOrderDirect(order);
+        System.out.println("✅ Executed: Order " + order.getOrderId() + " placed successfully");
+        return true;
+    }
+
+    @Override
+    public void undo() {
+        orderManager.removeOrderDirect(order.getOrderId());
+        System.out.println("↩️ Undone: Order " + order.getOrderId() + " removed");
+    }
+
+    @Override
+    public String getDescription() {
+        return "Place Order " + order.getOrderId() + " (" + order.getCustomerInfo().getCustomerName() + ")";
+    }
+}
+
+class ProcessOrderCommand implements Command {
+    private final OrderManager orderManager;
+    private final String orderId;
+    private OrderState previousState;  // Store previous state for undo
+
+    public ProcessOrderCommand(OrderManager orderManager, String orderId) {
+        this.orderManager = orderManager;
+        this.orderId = orderId;
+    }
+
+    @Override
+    public boolean execute() {
+        Order order = orderManager.getOrder(orderId);
+        if (order != null) {
+            // Save current state for undo
+            previousState = order.getCurrentState();
+
+            // Process to next step
+            order.processNextStep();
+            System.out.println("✅ Executed: Order " + orderId + " status updated");
+            return true;
+        }
+        System.out.println("❌ Failed: Order " + orderId + " not found");
+        return false;
+    }
+
+    @Override
+    public void undo() {
+        Order order = orderManager.getOrder(orderId);
+        if (order != null && previousState != null) {
+            order.setState(previousState);
+            System.out.println("↩️ Undone: Order " + orderId + " status reverted to " + previousState.getStatusName());
+        }
+    }
+
+    @Override
+    public String getDescription() {
+        return "Process Order " + orderId;
+    }
+}
+
+class CancelOrderCommand implements Command {
+    private final OrderManager orderManager;
+    private final String orderId;
+    private OrderState previousState;  // Store state before cancellation
+
+    public CancelOrderCommand(OrderManager orderManager, String orderId) {
+        this.orderManager = orderManager;
+        this.orderId = orderId;
+    }
+
+    @Override
+    public boolean execute() {
+        Order order = orderManager.getOrder(orderId);
+        if (order != null && order.canCancel()) {
+            // Save current state for undo
+            previousState = order.getCurrentState();
+
+            // Cancel the order
+            order.cancel();
+            System.out.println("✅ Executed: Order " + orderId + " cancelled");
+            return true;
+        }
+        System.out.println("❌ Failed: Cannot cancel order " + orderId);
+        return false;
+    }
+
+    @Override
+    public void undo() {
+        Order order = orderManager.getOrder(orderId);
+        if (order != null && previousState != null) {
+            order.setState(previousState);
+            System.out.println("↩️ Undone: Order " + orderId + " cancellation reverted");
+        }
+    }
+
+    @Override
+    public String getDescription() {
+        return "Cancel Order " + orderId;
     }
 }
 
 // ============================================================================
-// UPDATED RESTAURANT CLASS - Now works with State Pattern
+// COMMAND INVOKER - Manages command history and undo/redo
+// ============================================================================
+
+class CommandInvoker {
+    private final List<Command> history = new ArrayList<>();
+    private int currentPosition = -1;  // Current position in history
+
+    public boolean executeCommand(Command command) {
+        // Remove any commands after current position (for redo functionality)
+        if (currentPosition < history.size() - 1) {
+            history.subList(currentPosition + 1, history.size()).clear();
+        }
+
+        // Execute the command
+        boolean success = command.execute();
+
+        if (success) {
+            // Add to history and move position
+            history.add(command);
+            currentPosition++;
+        }
+
+        return success;
+    }
+
+    public boolean undo() {
+        if (currentPosition >= 0) {
+            Command command = history.get(currentPosition);
+            command.undo();
+            currentPosition--;
+            return true;
+        }
+        System.out.println("❌ Nothing to undo");
+        return false;
+    }
+
+    public boolean redo() {
+        if (currentPosition < history.size() - 1) {
+            currentPosition++;
+            Command command = history.get(currentPosition);
+            command.execute();
+            return true;
+        }
+        System.out.println("❌ Nothing to redo");
+        return false;
+    }
+
+    public void showHistory() {
+        System.out.println("\n📋 COMMAND HISTORY:");
+        System.out.println("=".repeat(60));
+
+        if (history.isEmpty()) {
+            System.out.println("No commands executed yet");
+        } else {
+            for (int i = 0; i < history.size(); i++) {
+                String indicator = (i == currentPosition) ? " <- CURRENT" : "";
+                String status = (i <= currentPosition) ? "✅" : "❌";
+                System.out.printf("%s %d. %s%s%n",
+                        status, i + 1, history.get(i).getDescription(), indicator);
+            }
+        }
+
+        System.out.println("=".repeat(60));
+        System.out.printf("Position: %d/%d | Can Undo: %s | Can Redo: %s%n",
+                currentPosition + 1, history.size(),
+                (currentPosition >= 0),
+                (currentPosition < history.size() - 1));
+        System.out.println("=".repeat(60));
+    }
+}
+
+// ============================================================================
+// ORDER MANAGER - Manages orders and works with commands
+// ============================================================================
+
+class OrderManager {
+    private final List<Order> orders = new ArrayList<>();
+
+    // Direct methods used by commands
+    public void addOrderDirect(Order order) {
+        orders.add(order);
+    }
+
+    public void removeOrderDirect(String orderId) {
+        orders.removeIf(order -> order.getOrderId().equals(orderId));
+    }
+
+    public Order getOrder(String orderId) {
+        return orders.stream()
+                .filter(order -> order.getOrderId().equals(orderId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public List<Order> getAllOrders() {
+        return new ArrayList<>(orders);
+    }
+
+    public void displayAllOrders() {
+        System.out.println("\n📊 ALL ORDERS:");
+        System.out.println("=".repeat(60));
+
+        if (orders.isEmpty()) {
+            System.out.println("No orders found");
+        } else {
+            for (Order order : orders) {
+                System.out.printf("Order %s | %s | Status: %s | Total: $%.2f%n",
+                        order.getOrderId(),
+                        order.getCustomerInfo().getCustomerName(),
+                        order.getStatus(),
+                        order.getTotalValue());
+            }
+        }
+
+        System.out.println("=".repeat(60));
+    }
+}
+
+// ============================================================================
+// UPDATED RESTAURANT CLASS - Now uses Command Pattern
 // ============================================================================
 
 class SimpleRestaurant {
     private final List<MenuCategory> categories;
-    private final List<Order> orders;
+    private final OrderManager orderManager;
+    private final CommandInvoker commandInvoker;
 
     SimpleRestaurant() {
         this.categories = new ArrayList<>();
-        this.orders = new ArrayList<>();
+        this.orderManager = new OrderManager();
+        this.commandInvoker = new CommandInvoker();
         initializeMenu();
     }
 
@@ -564,26 +697,51 @@ class SimpleRestaurant {
         return new Order.Builder(customerName, customerPhone);
     }
 
-    public void placeOrder(Order order) {
-        orders.add(order);
-        System.out.println("✅ Order placed successfully!");
-        order.displaySummary();
+    // NEW: All operations now use Command Pattern
+    public boolean placeOrder(Order order) {
+        Command command = new PlaceOrderCommand(orderManager, order);
+        boolean success = commandInvoker.executeCommand(command);
+        if (success) {
+            order.displaySummary();
+        }
+        return success;
     }
 
-    // SIMPLIFIED - just delegate to order's state
-    public void processOrder(Order order) {
-        order.processNextStep();
+    public boolean processOrder(String orderId) {
+        Command command = new ProcessOrderCommand(orderManager, orderId);
+        return commandInvoker.executeCommand(command);
     }
 
-    // NEW - Handle cancellation through state
-    public void cancelOrder(Order order) {
-        order.cancel();
+    public boolean cancelOrder(String orderId) {
+        Command command = new CancelOrderCommand(orderManager, orderId);
+        return commandInvoker.executeCommand(command);
+    }
+
+    // NEW: Undo/Redo functionality
+    public boolean undo() {
+        return commandInvoker.undo();
+    }
+
+    public boolean redo() {
+        return commandInvoker.redo();
+    }
+
+    public void showCommandHistory() {
+        commandInvoker.showHistory();
+    }
+
+    public void showAllOrders() {
+        orderManager.displayAllOrders();
+    }
+
+    public Order getOrder(String orderId) {
+        return orderManager.getOrder(orderId);
     }
 }
 
 public class BasicFoodOrderingSystem {
     public static void main(String[] args) {
-        System.out.println("🍕 PHASE 3: STATE PATTERN FOOD ORDERING 🍕\n");
+        System.out.println("🍕 PHASE 4: COMMAND PATTERN FOOD ORDERING 🍕\n");
 
         // Create restaurant
         SimpleRestaurant restaurant = new SimpleRestaurant();
@@ -596,79 +754,86 @@ public class BasicFoodOrderingSystem {
         MenuItem cheeseburger = restaurant.findMenuItem("Burgers", 1);
         MenuItem cola = restaurant.findMenuItem("Beverages", 1);
 
-        System.out.println("\n🎯 DEMONSTRATING STATE PATTERN BENEFITS:\n");
+        System.out.println("\n🎯 DEMONSTRATING COMMAND PATTERN BENEFITS:\n");
 
-        // Example 1: Normal order flow
-        System.out.println("📝 Example 1: Normal Order Processing");
+        // Example 1: Place orders and show history
+        System.out.println("📝 Example 1: Placing Orders");
+
         Order order1 = restaurant.createOrderBuilder("Alice Smith", "+1-555-0001")
                 .setEmail("alice@email.com")
-                .setDeliveryAddress("123 State Street")
-                .addItem(margherita, 2, Arrays.asList("Extra cheese", "Thin crust"))
+                .setDeliveryAddress("123 Command Street")
+                .addItem(margherita, 2, Arrays.asList("Extra cheese"))
                 .addItem(cola, 1)
                 .build();
 
-        restaurant.placeOrder(order1);
-
-        // Show state transitions
-        System.out.println("\n🔄 Processing through states...");
-        System.out.println("Current status: " + order1.getStatus() +
-                " | Can cancel: " + order1.canCancel());
-
-        restaurant.processOrder(order1); // PENDING -> CONFIRMED
-        restaurant.processOrder(order1); // CONFIRMED -> PREPARING
-
-        System.out.println("Current status: " + order1.getStatus() +
-                " | Can cancel: " + order1.canCancel());
-
-        restaurant.processOrder(order1); // PREPARING -> READY
-        restaurant.processOrder(order1); // READY -> IN_TRANSIT
-        restaurant.processOrder(order1); // IN_TRANSIT -> DELIVERED
-
-        // Try to process completed order
-        restaurant.processOrder(order1); // Should show "already delivered"
-
-        // Example 2: Cancellation rules
-        System.out.println("\n📝 Example 2: Testing Cancellation Rules");
         Order order2 = restaurant.createOrderBuilder("Bob Johnson", "+1-555-0002")
                 .addItem(cheeseburger, 1, Arrays.asList("No onions"))
                 .addItem(cola, 2)
                 .build();
 
+        restaurant.placeOrder(order1);
         restaurant.placeOrder(order2);
 
-        System.out.println("\nTrying to cancel PENDING order:");
-        restaurant.cancelOrder(order2); // Should work
+        restaurant.showCommandHistory();
 
-        System.out.println("\nTrying to cancel CANCELLED order:");
-        restaurant.cancelOrder(order2); // Should fail gracefully
+        // Example 2: Process orders and show undo functionality
+        System.out.println("\n📝 Example 2: Processing Orders and Undo");
 
-        // Example 3: Invalid state transitions prevented
-        System.out.println("\n📝 Example 3: State Transition Control");
-        Order order3 = restaurant.createOrderBuilder("Charlie Brown", "+1-555-0003")
-                .addItem(margherita, 1)
-                .build();
+        restaurant.processOrder(order1.getOrderId()); // PENDING -> CONFIRMED
+        restaurant.processOrder(order1.getOrderId()); // CONFIRMED -> PREPARING
+        restaurant.processOrder(order2.getOrderId()); // PENDING -> CONFIRMED
 
-        restaurant.placeOrder(order3);
-        restaurant.processOrder(order3); // PENDING -> CONFIRMED
-        restaurant.processOrder(order3); // CONFIRMED -> PREPARING
+        restaurant.showCommandHistory();
 
-        System.out.println("\nTrying to cancel PREPARING order:");
-        restaurant.cancelOrder(order3); // Should fail - cannot cancel when preparing
+        System.out.println("\n↩️ Undoing last command...");
+        restaurant.undo(); // Undo Bob's order processing
 
-        System.out.println("\n✨ PHASE 3 COMPLETE!");
+        restaurant.showCommandHistory();
+
+        // Example 3: Cancellation and undo
+        System.out.println("\n📝 Example 3: Cancellation and Undo");
+
+        restaurant.cancelOrder(order2.getOrderId()); // Cancel Bob's order
+        restaurant.showAllOrders();
+
+        System.out.println("\n↩️ Undoing cancellation...");
+        restaurant.undo(); // Undo the cancellation
+
+        restaurant.showAllOrders();
+
+        // Example 4: Multiple undo/redo operations
+        System.out.println("\n📝 Example 4: Multiple Undo/Redo Operations");
+
+        restaurant.showCommandHistory();
+
+        System.out.println("\n↩️ Undoing multiple commands...");
+        restaurant.undo();
+        restaurant.undo();
+        restaurant.undo();
+
+        restaurant.showCommandHistory();
+
+        System.out.println("\n↪️ Redoing commands...");
+        restaurant.redo();
+        restaurant.redo();
+
+        restaurant.showCommandHistory();
+
+        System.out.println("\n✨ PHASE 4 COMPLETE!");
         System.out.println("=".repeat(60));
-        System.out.println("🎉 STATE PATTERN BENEFITS DEMONSTRATED:");
-        System.out.println("  ✅ No more string status typos");
-        System.out.println("  ✅ Invalid state transitions prevented");
-        System.out.println("  ✅ Business rules encapsulated in states");
-        System.out.println("  ✅ Easy to add new states or modify rules");
-        System.out.println("  ✅ Each state knows its own capabilities");
-        System.out.println("  ✅ Clean separation of state-specific behavior");
+        System.out.println("🎉 COMMAND PATTERN BENEFITS DEMONSTRATED:");
+        System.out.println("  ✅ Operations can be undone and redone");
+        System.out.println("  ✅ Complete command history tracking");
+        System.out.println("  ✅ Operations are encapsulated in command objects");
+        System.out.println("  ✅ Easy to add new operations without changing existing code");
+        System.out.println("  ✅ Support for macro commands (batch operations)");
+        System.out.println("  ✅ Audit trail of all operations performed");
         System.out.println("=".repeat(60));
-        System.out.println("\n💭 COMPARE WITH PHASE 2 PROBLEMS:");
-        System.out.println("❌ Phase 2: order.updateStatus(\"DELIVRED\") // Typo!");
-        System.out.println("❌ Phase 2: order.updateStatus(\"PENDING\") // Invalid transition!");
-        System.out.println("✅ Phase 3: States prevent all these problems!");
-        System.out.println("\n🚀 Next Phase: What if we want to undo operations?");
+        System.out.println("\n💭 COMPARE WITH PHASE 3 PROBLEMS:");
+        System.out.println("❌ Phase 3: restaurant.placeOrder(order) // No undo!");
+        System.out.println("❌ Phase 3: restaurant.processOrder(order) // Irreversible!");
+        System.out.println("✅ Phase 4: Can undo any operation!");
+        System.out.println("\n🚀 Next Phase: Payment methods are hardcoded...");
+        System.out.println("💭 What if customers want different payment options?");
     }
 }
