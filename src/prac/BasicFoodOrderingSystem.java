@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-// Same MenuItem, MenuCategory, CustomerInfo classes (unchanged from Phase 3)
+// Same MenuItem, MenuCategory, CustomerInfo classes (unchanged from Phase 4)
 class MenuItem {
     private final String name;
     private final String description;
@@ -81,7 +81,7 @@ class CustomerInfo {
     }
 }
 
-// Same OrderItem class (unchanged from Phase 3)
+// Same OrderItem class (unchanged from Phase 4)
 class OrderItem {
     private final MenuItem menuItem;
     private final int quantity;
@@ -119,7 +119,7 @@ class OrderItem {
 }
 
 // ============================================================================
-// STATE PATTERN CLASSES (same as Phase 3)
+// STATE PATTERN CLASSES (same as Phase 4)
 // ============================================================================
 
 abstract class OrderState {
@@ -244,35 +244,233 @@ class CancelledState extends OrderState {
 }
 
 // ============================================================================
-// ORDER CLASS (same as Phase 3, but with ID generation for tracking)
+// STRATEGY PATTERN IMPLEMENTATION - Payment Methods
+// ============================================================================
+
+interface PaymentStrategy {
+    PaymentResult processPayment(double amount, String orderId);
+    String getPaymentType();
+}
+
+class PaymentResult {
+    private final boolean success;
+    private final String transactionId;
+    private final String message;
+    private final String paymentMethod;
+
+    public PaymentResult(boolean success, String transactionId, String message, String paymentMethod) {
+        this.success = success;
+        this.transactionId = transactionId;
+        this.message = message;
+        this.paymentMethod = paymentMethod;
+    }
+
+    public boolean isSuccess() { return success; }
+    public String getTransactionId() { return transactionId; }
+    public String getMessage() { return message; }
+    public String getPaymentMethod() { return paymentMethod; }
+
+    @Override
+    public String toString() {
+        return String.format("Payment[%s]: %s (TX: %s)",
+                paymentMethod, message, transactionId);
+    }
+}
+
+class CreditCardPayment implements PaymentStrategy {
+    private final String cardNumber;
+    private final String expiryDate;
+    private final String cvv;
+    private final String cardholderName;
+
+    public CreditCardPayment(String cardNumber, String expiryDate, String cvv, String cardholderName) {
+        this.cardNumber = cardNumber;
+        this.expiryDate = expiryDate;
+        this.cvv = cvv;
+        this.cardholderName = cardholderName;
+    }
+
+    @Override
+    public PaymentResult processPayment(double amount, String orderId) {
+        System.out.printf("💳 Processing credit card payment of $%.2f%n", amount);
+        System.out.printf("   Card: ****-****-****-%s | Holder: %s%n",
+                cardNumber.substring(Math.max(0, cardNumber.length() - 4)), cardholderName);
+
+        // Simulate payment processing delay
+        try { Thread.sleep(800); } catch (InterruptedException e) {}
+
+        // Simulate occasional payment failure (5% chance)
+        if (Math.random() < 0.05) {
+            return new PaymentResult(false, null, "Card declined - Insufficient funds", "Credit Card");
+        }
+
+        String transactionId = "CC-" + System.currentTimeMillis();
+        return new PaymentResult(true, transactionId, "Payment successful", "Credit Card");
+    }
+
+    @Override
+    public String getPaymentType() {
+        return "Credit Card";
+    }
+}
+
+class PayPalPayment implements PaymentStrategy {
+    private final String email;
+
+    public PayPalPayment(String email) {
+        this.email = email;
+    }
+
+    @Override
+    public PaymentResult processPayment(double amount, String orderId) {
+        System.out.printf("🅿️ Processing PayPal payment of $%.2f%n", amount);
+        System.out.printf("   PayPal Account: %s%n", email);
+
+        // Simulate PayPal authentication and processing
+        try { Thread.sleep(1200); } catch (InterruptedException e) {}
+
+        String transactionId = "PP-" + System.currentTimeMillis();
+        return new PaymentResult(true, transactionId, "PayPal payment completed", "PayPal");
+    }
+
+    @Override
+    public String getPaymentType() {
+        return "PayPal";
+    }
+}
+
+class CashOnDeliveryPayment implements PaymentStrategy {
+    @Override
+    public PaymentResult processPayment(double amount, String orderId) {
+        System.out.printf("💵 Cash on Delivery setup for $%.2f%n", amount);
+        System.out.println("   Driver will collect payment upon delivery");
+
+        String transactionId = "COD-" + System.currentTimeMillis();
+        return new PaymentResult(true, transactionId, "Cash on delivery confirmed", "Cash on Delivery");
+    }
+
+    @Override
+    public String getPaymentType() {
+        return "Cash on Delivery";
+    }
+}
+
+class ApplePayPayment implements PaymentStrategy {
+    private final String deviceId;
+
+    public ApplePayPayment(String deviceId) {
+        this.deviceId = deviceId;
+    }
+
+    @Override
+    public PaymentResult processPayment(double amount, String orderId) {
+        System.out.printf("📱 Processing Apple Pay payment of $%.2f%n", amount);
+        System.out.printf("   Device: %s | Touch ID/Face ID verified%n", deviceId);
+
+        // Simulate biometric verification
+        try { Thread.sleep(600); } catch (InterruptedException e) {}
+
+        String transactionId = "AP-" + System.currentTimeMillis();
+        return new PaymentResult(true, transactionId, "Apple Pay payment successful", "Apple Pay");
+    }
+
+    @Override
+    public String getPaymentType() {
+        return "Apple Pay";
+    }
+}
+
+class GooglePayPayment implements PaymentStrategy {
+    private final String accountId;
+
+    public GooglePayPayment(String accountId) {
+        this.accountId = accountId;
+    }
+
+    @Override
+    public PaymentResult processPayment(double amount, String orderId) {
+        System.out.printf("🔵 Processing Google Pay payment of $%.2f%n", amount);
+        System.out.printf("   Account: %s | Payment authorized%n", accountId);
+
+        try { Thread.sleep(700); } catch (InterruptedException e) {}
+
+        String transactionId = "GP-" + System.currentTimeMillis();
+        return new PaymentResult(true, transactionId, "Google Pay payment successful", "Google Pay");
+    }
+
+    @Override
+    public String getPaymentType() {
+        return "Google Pay";
+    }
+}
+
+// Payment Processor using Strategy Pattern
+class PaymentProcessor {
+    private PaymentStrategy currentStrategy;
+
+    public PaymentProcessor() {
+        // Default strategy
+        this.currentStrategy = new CashOnDeliveryPayment();
+    }
+
+    public void setPaymentStrategy(PaymentStrategy strategy) {
+        this.currentStrategy = strategy;
+        System.out.println("💰 Payment method set to: " + strategy.getPaymentType());
+    }
+
+    public PaymentResult processPayment(double amount, String orderId) {
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("PROCESSING PAYMENT");
+        System.out.println("=".repeat(50));
+
+        PaymentResult result = currentStrategy.processPayment(amount, orderId);
+
+        if (result.isSuccess()) {
+            System.out.println("✅ " + result);
+        } else {
+            System.out.println("❌ " + result);
+        }
+
+        System.out.println("=".repeat(50));
+        return result;
+    }
+
+    public String getCurrentPaymentType() {
+        return currentStrategy.getPaymentType();
+    }
+}
+
+// ============================================================================
+// ENHANCED ORDER CLASS - Now includes payment information
 // ============================================================================
 
 class Order {
-    private final String orderId;  // NEW: ID for tracking
+    private final String orderId;
     private final List<OrderItem> orderItems;
     private final CustomerInfo customerInfo;
     private final String email;
     private final String deliveryAddress;
     private final String specialInstructions;
     private OrderState currentState;
+    private PaymentResult paymentResult;  // NEW: Track payment info
 
     private Order(Builder builder) {
-        this.orderId = generateOrderId();  // NEW: Generate unique ID
+        this.orderId = generateOrderId();
         this.orderItems = new ArrayList<>(builder.orderItems);
         this.customerInfo = builder.customerInfo;
         this.email = builder.email;
         this.deliveryAddress = builder.deliveryAddress;
         this.specialInstructions = builder.specialInstructions;
         this.currentState = new PendingState(this);
+        this.paymentResult = null;  // Will be set when payment is processed
     }
 
-    // NEW: Generate unique order ID
     private String generateOrderId() {
         return "ORD-" + System.currentTimeMillis() + "-" +
                 Integer.toHexString(hashCode()).toUpperCase().substring(0, 4);
     }
 
-    // Builder Pattern (same as Phase 3)
+    // Builder Pattern (same as Phase 4)
     public static class Builder {
         private CustomerInfo customerInfo;
         private List<OrderItem> orderItems = new ArrayList<>();
@@ -319,7 +517,7 @@ class Order {
         }
     }
 
-    // State management methods (same as Phase 3)
+    // State management methods (same as Phase 4)
     public void setState(OrderState newState) {
         this.currentState = newState;
         System.out.println("📱 Order " + orderId + " status changed to: " + getStatus());
@@ -343,6 +541,15 @@ class Order {
 
     public String getStatus() {
         return currentState.getStatusName();
+    }
+
+    // NEW: Payment methods
+    public void setPaymentResult(PaymentResult result) {
+        this.paymentResult = result;
+    }
+
+    public boolean isPaid() {
+        return paymentResult != null && paymentResult.isSuccess();
     }
 
     // Other methods
@@ -380,6 +587,13 @@ class Order {
 
         System.out.printf("Total: $%.2f%n", getTotalValue());
 
+        // NEW: Show payment information
+        if (paymentResult != null) {
+            System.out.println("Payment: " + paymentResult);
+        } else {
+            System.out.println("Payment: Not processed");
+        }
+
         if (!specialInstructions.isEmpty()) {
             System.out.println("Special Instructions: " + specialInstructions);
         }
@@ -387,55 +601,68 @@ class Order {
         System.out.println("=".repeat(50));
     }
 
-    // NEW: Getters for Command pattern
+    // Getters
     public String getOrderId() { return orderId; }
     public CustomerInfo getCustomerInfo() { return customerInfo; }
     public List<OrderItem> getOrderItems() { return new ArrayList<>(orderItems); }
-    public OrderState getCurrentState() { return currentState; }  // For commands to save state
+    public OrderState getCurrentState() { return currentState; }
+    public PaymentResult getPaymentResult() { return paymentResult; }
 }
 
 // ============================================================================
-// COMMAND PATTERN IMPLEMENTATION - The new functionality!
+// UPDATED COMMAND PATTERN - Now includes payment processing
 // ============================================================================
 
 interface Command {
-    boolean execute();  // Perform the operation
-    void undo();        // Reverse the operation
-    String getDescription(); // For logging/history display
+    boolean execute();
+    void undo();
+    String getDescription();
 }
 
 class PlaceOrderCommand implements Command {
     private final OrderManager orderManager;
     private final Order order;
+    private final PaymentProcessor paymentProcessor;
 
-    public PlaceOrderCommand(OrderManager orderManager, Order order) {
+    public PlaceOrderCommand(OrderManager orderManager, Order order, PaymentProcessor paymentProcessor) {
         this.orderManager = orderManager;
         this.order = order;
+        this.paymentProcessor = paymentProcessor;
     }
 
     @Override
     public boolean execute() {
-        orderManager.addOrderDirect(order);
-        System.out.println("✅ Executed: Order " + order.getOrderId() + " placed successfully");
-        return true;
+        // Process payment first
+        PaymentResult paymentResult = paymentProcessor.processPayment(order.getTotalValue(), order.getOrderId());
+        order.setPaymentResult(paymentResult);
+
+        if (paymentResult.isSuccess()) {
+            orderManager.addOrderDirect(order);
+            System.out.println("✅ Executed: Order " + order.getOrderId() + " placed and paid");
+            return true;
+        } else {
+            System.out.println("❌ Failed: Payment failed for Order " + order.getOrderId());
+            return false;
+        }
     }
 
     @Override
     public void undo() {
         orderManager.removeOrderDirect(order.getOrderId());
-        System.out.println("↩️ Undone: Order " + order.getOrderId() + " removed");
+        System.out.println("↩️ Undone: Order " + order.getOrderId() + " removed (payment would be refunded)");
     }
 
     @Override
     public String getDescription() {
-        return "Place Order " + order.getOrderId() + " (" + order.getCustomerInfo().getCustomerName() + ")";
+        String paymentInfo = order.isPaid() ? order.getPaymentResult().getPaymentMethod() : "Payment Failed";
+        return "Place Order " + order.getOrderId() + " (" + paymentInfo + ")";
     }
 }
 
 class ProcessOrderCommand implements Command {
     private final OrderManager orderManager;
     private final String orderId;
-    private OrderState previousState;  // Store previous state for undo
+    private OrderState previousState;
 
     public ProcessOrderCommand(OrderManager orderManager, String orderId) {
         this.orderManager = orderManager;
@@ -446,10 +673,7 @@ class ProcessOrderCommand implements Command {
     public boolean execute() {
         Order order = orderManager.getOrder(orderId);
         if (order != null) {
-            // Save current state for undo
             previousState = order.getCurrentState();
-
-            // Process to next step
             order.processNextStep();
             System.out.println("✅ Executed: Order " + orderId + " status updated");
             return true;
@@ -476,7 +700,7 @@ class ProcessOrderCommand implements Command {
 class CancelOrderCommand implements Command {
     private final OrderManager orderManager;
     private final String orderId;
-    private OrderState previousState;  // Store state before cancellation
+    private OrderState previousState;
 
     public CancelOrderCommand(OrderManager orderManager, String orderId) {
         this.orderManager = orderManager;
@@ -487,10 +711,7 @@ class CancelOrderCommand implements Command {
     public boolean execute() {
         Order order = orderManager.getOrder(orderId);
         if (order != null && order.canCancel()) {
-            // Save current state for undo
             previousState = order.getCurrentState();
-
-            // Cancel the order
             order.cancel();
             System.out.println("✅ Executed: Order " + orderId + " cancelled");
             return true;
@@ -514,25 +735,19 @@ class CancelOrderCommand implements Command {
     }
 }
 
-// ============================================================================
-// COMMAND INVOKER - Manages command history and undo/redo
-// ============================================================================
-
+// Same CommandInvoker class (unchanged from Phase 4)
 class CommandInvoker {
     private final List<Command> history = new ArrayList<>();
-    private int currentPosition = -1;  // Current position in history
+    private int currentPosition = -1;
 
     public boolean executeCommand(Command command) {
-        // Remove any commands after current position (for redo functionality)
         if (currentPosition < history.size() - 1) {
             history.subList(currentPosition + 1, history.size()).clear();
         }
 
-        // Execute the command
         boolean success = command.execute();
 
         if (success) {
-            // Add to history and move position
             history.add(command);
             currentPosition++;
         }
@@ -578,22 +793,13 @@ class CommandInvoker {
         }
 
         System.out.println("=".repeat(60));
-        System.out.printf("Position: %d/%d | Can Undo: %s | Can Redo: %s%n",
-                currentPosition + 1, history.size(),
-                (currentPosition >= 0),
-                (currentPosition < history.size() - 1));
-        System.out.println("=".repeat(60));
     }
 }
 
-// ============================================================================
-// ORDER MANAGER - Manages orders and works with commands
-// ============================================================================
-
+// Same OrderManager class (unchanged from Phase 4)
 class OrderManager {
     private final List<Order> orders = new ArrayList<>();
 
-    // Direct methods used by commands
     public void addOrderDirect(Order order) {
         orders.add(order);
     }
@@ -615,37 +821,41 @@ class OrderManager {
 
     public void displayAllOrders() {
         System.out.println("\n📊 ALL ORDERS:");
-        System.out.println("=".repeat(60));
+        System.out.println("=".repeat(70));
 
         if (orders.isEmpty()) {
             System.out.println("No orders found");
         } else {
             for (Order order : orders) {
-                System.out.printf("Order %s | %s | Status: %s | Total: $%.2f%n",
+                String paymentInfo = order.isPaid() ? order.getPaymentResult().getPaymentMethod() : "No Payment";
+                System.out.printf("Order %s | %s | Status: %s | Total: $%.2f | Payment: %s%n",
                         order.getOrderId(),
                         order.getCustomerInfo().getCustomerName(),
                         order.getStatus(),
-                        order.getTotalValue());
+                        order.getTotalValue(),
+                        paymentInfo);
             }
         }
 
-        System.out.println("=".repeat(60));
+        System.out.println("=".repeat(70));
     }
 }
 
 // ============================================================================
-// UPDATED RESTAURANT CLASS - Now uses Command Pattern
+// UPDATED RESTAURANT CLASS - Now with Payment Strategy
 // ============================================================================
 
 class SimpleRestaurant {
     private final List<MenuCategory> categories;
     private final OrderManager orderManager;
     private final CommandInvoker commandInvoker;
+    private final PaymentProcessor paymentProcessor;  // NEW: Payment processor
 
     SimpleRestaurant() {
         this.categories = new ArrayList<>();
         this.orderManager = new OrderManager();
         this.commandInvoker = new CommandInvoker();
+        this.paymentProcessor = new PaymentProcessor();  // NEW: Initialize with default
         initializeMenu();
     }
 
@@ -697,9 +907,14 @@ class SimpleRestaurant {
         return new Order.Builder(customerName, customerPhone);
     }
 
-    // NEW: All operations now use Command Pattern
+    // NEW: Set payment method before placing orders
+    public void setPaymentMethod(PaymentStrategy paymentStrategy) {
+        paymentProcessor.setPaymentStrategy(paymentStrategy);
+    }
+
+    // Updated to use payment processor
     public boolean placeOrder(Order order) {
-        Command command = new PlaceOrderCommand(orderManager, order);
+        Command command = new PlaceOrderCommand(orderManager, order, paymentProcessor);
         boolean success = commandInvoker.executeCommand(command);
         if (success) {
             order.displaySummary();
@@ -717,7 +932,6 @@ class SimpleRestaurant {
         return commandInvoker.executeCommand(command);
     }
 
-    // NEW: Undo/Redo functionality
     public boolean undo() {
         return commandInvoker.undo();
     }
@@ -737,11 +951,15 @@ class SimpleRestaurant {
     public Order getOrder(String orderId) {
         return orderManager.getOrder(orderId);
     }
+
+    public String getCurrentPaymentMethod() {
+        return paymentProcessor.getCurrentPaymentType();
+    }
 }
 
 public class BasicFoodOrderingSystem {
     public static void main(String[] args) {
-        System.out.println("🍕 PHASE 4: COMMAND PATTERN FOOD ORDERING 🍕\n");
+        System.out.println("🍕 PHASE 5: STRATEGY PATTERN PAYMENT SYSTEM 🍕\n");
 
         // Create restaurant
         SimpleRestaurant restaurant = new SimpleRestaurant();
@@ -754,86 +972,118 @@ public class BasicFoodOrderingSystem {
         MenuItem cheeseburger = restaurant.findMenuItem("Burgers", 1);
         MenuItem cola = restaurant.findMenuItem("Beverages", 1);
 
-        System.out.println("\n🎯 DEMONSTRATING COMMAND PATTERN BENEFITS:\n");
+        System.out.println("\n🎯 DEMONSTRATING STRATEGY PATTERN FOR PAYMENTS:\n");
 
-        // Example 1: Place orders and show history
-        System.out.println("📝 Example 1: Placing Orders");
+        // Example 1: Credit Card Payment
+        System.out.println("📝 Example 1: Credit Card Payment");
+        restaurant.setPaymentMethod(new CreditCardPayment("4532123456789012", "12/26", "123", "Alice Johnson"));
 
-        Order order1 = restaurant.createOrderBuilder("Alice Smith", "+1-555-0001")
+        Order order1 = restaurant.createOrderBuilder("Alice Johnson", "+1-555-0001")
                 .setEmail("alice@email.com")
-                .setDeliveryAddress("123 Command Street")
+                .setDeliveryAddress("123 Strategy Street")
                 .addItem(margherita, 2, Arrays.asList("Extra cheese"))
                 .addItem(cola, 1)
                 .build();
 
-        Order order2 = restaurant.createOrderBuilder("Bob Johnson", "+1-555-0002")
+        restaurant.placeOrder(order1);
+
+        // Example 2: PayPal Payment
+        System.out.println("\n📝 Example 2: PayPal Payment");
+        restaurant.setPaymentMethod(new PayPalPayment("bob.smith@paypal.com"));
+
+        Order order2 = restaurant.createOrderBuilder("Bob Smith", "+1-555-0002")
+                .setEmail("bob@email.com")
                 .addItem(cheeseburger, 1, Arrays.asList("No onions"))
                 .addItem(cola, 2)
                 .build();
 
-        restaurant.placeOrder(order1);
         restaurant.placeOrder(order2);
 
-        restaurant.showCommandHistory();
+        // Example 3: Cash on Delivery
+        System.out.println("\n📝 Example 3: Cash on Delivery");
+        restaurant.setPaymentMethod(new CashOnDeliveryPayment());
 
-        // Example 2: Process orders and show undo functionality
-        System.out.println("\n📝 Example 2: Processing Orders and Undo");
+        Order order3 = restaurant.createOrderBuilder("Carol Davis", "+1-555-0003")
+                .setDeliveryAddress("789 Cash Avenue")
+                .addItem(margherita, 1)
+                .addItem(cheeseburger, 1)
+                .build();
 
-        restaurant.processOrder(order1.getOrderId()); // PENDING -> CONFIRMED
-        restaurant.processOrder(order1.getOrderId()); // CONFIRMED -> PREPARING
-        restaurant.processOrder(order2.getOrderId()); // PENDING -> CONFIRMED
+        restaurant.placeOrder(order3);
 
-        restaurant.showCommandHistory();
+        // Example 4: Apple Pay
+        System.out.println("\n📝 Example 4: Apple Pay");
+        restaurant.setPaymentMethod(new ApplePayPayment("iPhone-13-Pro"));
 
-        System.out.println("\n↩️ Undoing last command...");
-        restaurant.undo(); // Undo Bob's order processing
+        Order order4 = restaurant.createOrderBuilder("David Wilson", "+1-555-0004")
+                .addItem(margherita, 1, Arrays.asList("Thin crust"))
+                .addItem(cola, 3)
+                .build();
 
-        restaurant.showCommandHistory();
+        restaurant.placeOrder(order4);
 
-        // Example 3: Cancellation and undo
-        System.out.println("\n📝 Example 3: Cancellation and Undo");
+        // Example 5: Google Pay
+        System.out.println("\n📝 Example 5: Google Pay");
+        restaurant.setPaymentMethod(new GooglePayPayment("user@gmail.com"));
 
-        restaurant.cancelOrder(order2.getOrderId()); // Cancel Bob's order
+        Order order5 = restaurant.createOrderBuilder("Emma Brown", "+1-555-0005")
+                .setEmail("emma@email.com")
+                .addItem(cheeseburger, 2)
+                .build();
+
+        restaurant.placeOrder(order5);
+
+        // Show all orders with payment information
         restaurant.showAllOrders();
 
-        System.out.println("\n↩️ Undoing cancellation...");
-        restaurant.undo(); // Undo the cancellation
+        // Show command history with payment methods
+        restaurant.showCommandHistory();
 
+        // Demonstrate payment failure handling
+        System.out.println("\n📝 Example 6: Testing Payment Failure");
+        restaurant.setPaymentMethod(new CreditCardPayment("1111111111111111", "01/25", "000", "Test User"));
+
+        Order failOrder = restaurant.createOrderBuilder("Test User", "+1-555-9999")
+                .addItem(margherita, 1)
+                .build();
+
+        // This might fail due to the 5% random failure chance in CreditCardPayment
+        boolean success = restaurant.placeOrder(failOrder);
+        if (!success) {
+            System.out.println("🔄 Retrying with different payment method...");
+            restaurant.setPaymentMethod(new CashOnDeliveryPayment());
+            restaurant.placeOrder(failOrder);
+        }
+
+        // Process some orders to show the system working
+        System.out.println("\n🔄 Processing some orders...\n");
+        if (order1.isPaid()) {
+            restaurant.processOrder(order1.getOrderId());
+            restaurant.processOrder(order1.getOrderId());
+        }
+
+        if (order2.isPaid()) {
+            restaurant.processOrder(order2.getOrderId());
+        }
+
+        // Final status
         restaurant.showAllOrders();
 
-        // Example 4: Multiple undo/redo operations
-        System.out.println("\n📝 Example 4: Multiple Undo/Redo Operations");
-
-        restaurant.showCommandHistory();
-
-        System.out.println("\n↩️ Undoing multiple commands...");
-        restaurant.undo();
-        restaurant.undo();
-        restaurant.undo();
-
-        restaurant.showCommandHistory();
-
-        System.out.println("\n↪️ Redoing commands...");
-        restaurant.redo();
-        restaurant.redo();
-
-        restaurant.showCommandHistory();
-
-        System.out.println("\n✨ PHASE 4 COMPLETE!");
+        System.out.println("\n✨ PHASE 5 COMPLETE!");
         System.out.println("=".repeat(60));
-        System.out.println("🎉 COMMAND PATTERN BENEFITS DEMONSTRATED:");
-        System.out.println("  ✅ Operations can be undone and redone");
-        System.out.println("  ✅ Complete command history tracking");
-        System.out.println("  ✅ Operations are encapsulated in command objects");
-        System.out.println("  ✅ Easy to add new operations without changing existing code");
-        System.out.println("  ✅ Support for macro commands (batch operations)");
-        System.out.println("  ✅ Audit trail of all operations performed");
+        System.out.println("🎉 STRATEGY PATTERN BENEFITS DEMONSTRATED:");
+        System.out.println("  ✅ Multiple payment methods without changing Order class");
+        System.out.println("  ✅ Easy to add new payment types (Bitcoin, Bank Transfer, etc.)");
+        System.out.println("  ✅ Payment logic encapsulated in strategy classes");
+        System.out.println("  ✅ Runtime switching between payment methods");
+        System.out.println("  ✅ Payment-specific behavior handled properly");
+        System.out.println("  ✅ Payment failures handled gracefully");
         System.out.println("=".repeat(60));
-        System.out.println("\n💭 COMPARE WITH PHASE 3 PROBLEMS:");
-        System.out.println("❌ Phase 3: restaurant.placeOrder(order) // No undo!");
-        System.out.println("❌ Phase 3: restaurant.processOrder(order) // Irreversible!");
-        System.out.println("✅ Phase 4: Can undo any operation!");
-        System.out.println("\n🚀 Next Phase: Payment methods are hardcoded...");
-        System.out.println("💭 What if customers want different payment options?");
+        System.out.println("\n💭 COMPARE WITH PHASE 4 PROBLEMS:");
+        System.out.println("❌ Phase 4: Payment hardcoded, no choice for customers");
+        System.out.println("❌ Phase 4: Adding new payment = modifying existing code");
+        System.out.println("✅ Phase 5: Multiple payment options, easy to extend!");
+        System.out.println("\n🚀 Next Phase: Order status changes are silent...");
+        System.out.println("💭 Customers want notifications when their order status changes!");
     }
 }
