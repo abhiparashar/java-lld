@@ -1,4 +1,4 @@
-// Phase 1: Basic Device Control
+package projects.smartHome;// Phase 1: Basic Device Control
 // Simple implementation with direct device control
 
 // Basic Light Device
