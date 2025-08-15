@@ -37,6 +37,19 @@ class Light {
         System.out.println(location + " Light - Status: " + (isOn ? "ON" : "OFF") +
                 ", Brightness: " + brightness + "%");
     }
+
+    // Getters for command pattern
+    public String getLocation() {
+        return location;
+    }
+
+    public int getBrightness() {
+        return brightness;
+    }
+
+    public boolean isOn(){
+        return isOn;
+    }
 }
 
 // Basic Thermostat Device
@@ -80,6 +93,24 @@ class Thermostat {
                 ", Target: " + targetTemperature + "°F, Current: " +
                 currentTemperature + "°F");
     }
+
+    //getters for command
+    public String getLocation() {
+        return location;
+    }
+
+    public int getTargetTemperature() {
+        return targetTemperature;
+    }
+
+    public int getCurrentTemperature() {
+        return currentTemperature;
+    }
+
+    public boolean isOn() {
+        return isOn;
+    }
+
 }
 
 // Basic Security System
@@ -117,6 +148,130 @@ class SecuritySystem {
                 ", Motion: " + (motionDetected ? "DETECTED" : "CLEAR"));
     }
 }
+
+interface Command{
+    public void execute();
+    public void undo();
+    String getDescription();
+}
+
+// Concrete Commands for Light Operations
+class LightOnCommand implements Command{
+    private final Light light;
+    private int previousBrightness;
+    private boolean previousState;
+
+    LightOnCommand(Light light) {
+        this.light = light;
+    }
+
+    @Override
+    public void execute() {
+        previousState = light.isOn();
+        previousBrightness = light.getBrightness();
+        light.turnOn();
+    }
+
+    @Override
+    public void undo() {
+        if(!previousState){
+            light.turnOff();
+        }else {
+            light.setBrightness(previousBrightness);
+        }
+    }
+
+    @Override
+    public String getDescription() {
+        return "Turn ON " + light.getLocation() + " light";
+    }
+}
+
+class LightOffCommand implements Command{
+    private final Light light;
+    private boolean previousState;
+    private int previousBrightness;
+
+    LightOffCommand(Light light) {
+        this.light = light;
+    }
+
+    @Override
+    public void execute() {
+        previousBrightness = light.getBrightness();
+        previousState = light.isOn();
+        light.turnOff();
+    }
+
+    @Override
+    public void undo() {
+        if(previousState){
+            light.setBrightness(previousBrightness);
+        }
+    }
+
+    @Override
+    public String getDescription() {
+        return "Turn OFF " + light.getLocation() + " light";
+    }
+}
+
+class LightBrightnessCommand implements Command{
+    private final Light light;
+    private int previousBrightness;
+    private final int newBrightness;
+
+    LightBrightnessCommand(Light light, int newBrightness) {
+        this.light = light;
+        this.newBrightness = newBrightness;
+    }
+
+
+    @Override
+    public void execute() {
+        previousBrightness = light.getBrightness();
+        light.setBrightness(newBrightness);
+    }
+
+    @Override
+    public void undo() {
+        light.setBrightness(previousBrightness);
+    }
+
+    @Override
+    public String getDescription() {
+        return "Set " + light.getLocation() + " light brightness to " + newBrightness + "%";
+    }
+}
+
+class ThermostatOnCommand implements Command{
+    private final Thermostat thermostat;
+    private int previousTemperature;
+    private boolean previousState;
+
+    ThermostatOnCommand(Thermostat thermostat) {
+        this.thermostat = thermostat;
+    }
+
+    @Override
+    public void execute() {
+        previousState = thermostat.isOn();
+        thermostat.turnOn();
+    }
+
+    @Override
+    public void undo() {
+        if (!previousState) {
+            thermostat.turnOff();
+        }
+    }
+
+    @Override
+    public String getDescription() {
+        return "Turn ON " + thermostat.getLocation() + " thermostat";
+    }
+}
+
 
 // Simple Home Controller
 class SimpleHomeController {
