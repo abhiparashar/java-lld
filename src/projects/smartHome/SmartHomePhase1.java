@@ -1,6 +1,8 @@
 package projects.smartHome;// Phase 1: Basic Device Control
 // Simple implementation with direct device control
 
+import java.util.Stack;
+
 // Basic Light Device
 class Light {
     private String location;
@@ -147,6 +149,10 @@ class SecuritySystem {
         System.out.println("Security System - Status: " + (isArmed ? "ARMED" : "DISARMED") +
                 ", Motion: " + (motionDetected ? "DETECTED" : "CLEAR"));
     }
+
+    // Getters for command pattern
+    public boolean isArmed() { return isArmed; }
+    public boolean isMotionDetected() { return motionDetected; }
 }
 
 interface Command{
@@ -326,81 +332,205 @@ class ThermostatSetTemperatureCommand implements Command{
     }
 }
 
+// Concrete Commands for Security Operations
+class SecurityArmCommand implements Command{
+    private final SecuritySystem securitySystem;
+    private boolean previousState;
 
-// Simple Home Controller
-class SimpleHomeController {
+    SecurityArmCommand(SecuritySystem securitySystem) {
+        this.securitySystem = securitySystem;
+    }
+
+    @Override
+    public void execute() {
+        previousState = securitySystem.isArmed();
+        securitySystem.arm();
+    }
+
+    @Override
+    public void undo() {
+        if (!previousState) {
+            securitySystem.disarm();
+        }
+    }
+
+    @Override
+    public String getDescription() {
+        return "ARM security system";
+    }
+}
+
+class SecurityDisarmCommand implements Command{
+    private final SecuritySystem securitySystem;
+    private boolean previousState;
+
+    SecurityDisarmCommand(SecuritySystem securitySystem) {
+        this.securitySystem = securitySystem;
+    }
+
+    @Override
+    public void execute() {
+        previousState = securitySystem.isArmed();
+        securitySystem.disarm();
+    }
+
+    @Override
+    public void undo() {
+        if (previousState) {
+            securitySystem.arm();
+        }
+    }
+
+    @Override
+    public String getDescription() {
+        return "DISARM security system";
+    }
+}
+
+class SecurityMotionCommand implements Command{
+    private final SecuritySystem securitySystem;
+
+    SecurityMotionCommand(SecuritySystem securitySystem) {
+        this.securitySystem = securitySystem;
+    }
+
+    @Override
+    public void execute() {
+        securitySystem.simulateMotion();
+    }
+
+    @Override
+    public void undo() {
+        System.out.println("Cannot undo motion detection simulation");
+    }
+
+    @Override
+    public String getDescription() {
+        return "Simulate motion detection";
+    }
+}
+
+// Remote Control (Invoker) - Uses Command Pattern
+class SmartHomeRemote {
     private Light livingRoomLight;
     private Light bedroomLight;
     private Thermostat mainThermostat;
     private SecuritySystem security;
 
-    public SimpleHomeController() {
+    // Command history for undo functionality
+    private Stack<Command>commandsHistory;
+
+    public SmartHomeRemote() {
         // Initialize devices
         this.livingRoomLight = new Light("Living Room");
         this.bedroomLight = new Light("Bedroom");
         this.mainThermostat = new Thermostat("Main Floor", 72);
         this.security = new SecuritySystem();
+        this.commandsHistory = new Stack<>();
     }
 
-    public void controlLivingRoomLight(String action, int... params) {
-        switch (action.toLowerCase()) {
-            case "on":
-                livingRoomLight.turnOn();
-                break;
-            case "off":
-                livingRoomLight.turnOff();
-                break;
-            case "brightness":
-                if (params.length > 0) {
-                    livingRoomLight.setBrightness(params[0]);
-                }
-                break;
+    // Execute any command and store it for undo
+    public void executeCommand(Command command){
+        command.execute();
+        commandsHistory.push(command);
+    }
+
+    // Undo the last command
+    public void undoLastCommand(){
+        if (!commandsHistory.isEmpty()) {
+            Command lastCommand = commandsHistory.pop();
+            lastCommand.undo();
+        } else {
+            System.out.println("No commands to undo");
         }
     }
 
-    public void controlBedroomLight(String action, int... params) {
-        switch (action.toLowerCase()) {
-            case "on":
-                bedroomLight.turnOn();
-                break;
-            case "off":
-                bedroomLight.turnOff();
-                break;
-            case "brightness":
-                if (params.length > 0) {
-                    bedroomLight.setBrightness(params[0]);
-                }
-                break;
+    // Convenience methods to create and execute commands
+    public void controlLivingRoomLight(String action, int...params){
+        Command command = createLightCommand(livingRoomLight, action, params);
+        if(command != null){
+            executeCommand(command);
         }
     }
 
-    public void controlThermostat(String action, int... params) {
-        switch (action.toLowerCase()) {
+    public void controlBedroomLight(String action, int...params){
+        Command command = createLightCommand(bedroomLight,action,params);
+        if(command != null){
+            executeCommand(command);
+        }
+    }
+
+    public void controlThermostat(String action, int...params){
+        Command command = createThermostatCommand(mainThermostat,action,params);
+        if(command != null){
+            executeCommand(command);
+        }
+    }
+
+    public void controlSecurity(String action){
+        Command command = createSecurityCommand(security, action);
+        if(command != null){
+            executeCommand(command);
+        }
+    }
+
+    // Helper methods to create commands
+    public Command createLightCommand(Light light, String action, int...params){
+        switch (action.toLowerCase()){
             case "on":
-                mainThermostat.turnOn();
-                break;
+                return new LightOnCommand(light);
             case "off":
-                mainThermostat.turnOff();
-                break;
+                return new LightOffCommand(light);
+            case "brightness":
+               if(params.length>0){
+                    return new LightBrightnessCommand(light,params[0]);
+               }
+               break;
+        }
+        return null;
+    }
+
+    public Command createThermostatCommand(Thermostat thermostat, String action, int...params){
+        switch (action.toLowerCase()){
+            case "on":
+                return new ThermostatOnCommand(thermostat);
+            case "off":
+                return new ThermostatOffCommand(thermostat);
             case "temperature":
-                if (params.length > 0) {
-                    mainThermostat.setTemperature(params[0]);
+                if(params.length >0){
+                    return new ThermostatSetTemperatureCommand(thermostat, params[0]);
                 }
-                break;
         }
+        return null;
     }
 
-    public void controlSecurity(String action) {
-        switch (action.toLowerCase()) {
+    public Command createSecurityCommand(SecuritySystem securitySystem, String action){
+        switch (action.toLowerCase()){
             case "arm":
-                security.arm();
-                break;
+                return new SecurityArmCommand(security);
             case "disarm":
-                security.disarm();
-                break;
+                return new SecurityDisarmCommand(security);
             case "motion":
-                security.simulateMotion();
-                break;
+                return new SecurityMotionCommand(security);
+        }
+        return null;
+    }
+
+    public void showCommandHistory(){
+        if(commandsHistory.isEmpty()){
+            System.out.println("No commands executed yet");
+        }else {
+            Stack<Command>temp = new Stack<>();
+            int count = 0;
+            while (!commandsHistory.isEmpty()){
+                Command command = commandsHistory.pop();
+                temp.push(command);
+                count++;
+            }
+            // Restore the stack
+            while (!temp.isEmpty()){
+                commandsHistory.push(temp.pop());
+            }
         }
     }
 
@@ -417,38 +547,44 @@ class SimpleHomeController {
 // Demo Application
 public class SmartHomePhase1 {
     public static void main(String[] args) {
-        SimpleHomeController home = new SimpleHomeController();
+        SmartHomeRemote remote = new SmartHomeRemote();
 
-        System.out.println("Smart Home Control System - Phase 1");
-        System.out.println("===================================\n");
+        System.out.println("Smart Home Control System - Phase 2 (Command Pattern)");
+        System.out.println("====================================================\n");
 
         // Initial status
-        home.showAllStatus();
+        remote.showAllStatus();
 
-        // Control lights
-        System.out.println("Controlling lights...");
-        home.controlLivingRoomLight("on");
-        home.controlBedroomLight("on");
-        home.controlLivingRoomLight("brightness", 50);
+        // Control devices using command pattern
+        System.out.println("Executing commands...");
+        remote.controlLivingRoomLight("on");
+        remote.controlBedroomLight("on");
+        remote.controlLivingRoomLight("brightness", 50);
+        remote.controlThermostat("temperature", 75);
+        remote.controlSecurity("arm");
+        remote.controlSecurity("motion");
 
-        // Control thermostat
-        System.out.println("\nControlling thermostat...");
-        home.controlThermostat("temperature", 75);
+        // Show current status
+        remote.showAllStatus();
 
-        // Control security
-        System.out.println("\nControlling security...");
-        home.controlSecurity("arm");
-        home.controlSecurity("motion");
+        // Show command history
+        remote.showCommandHistory();
 
-        // Final status
-        home.showAllStatus();
+        // Demonstrate undo functionality
+        System.out.println("Demonstrating UNDO functionality...");
+        remote.undoLastCommand(); // Undo motion simulation
+        remote.undoLastCommand(); // Undo security arm
+        remote.undoLastCommand(); // Undo thermostat setting
+
+        // Show final status
+        remote.showAllStatus();
 
         // Turn off lights
         System.out.println("Turning off lights...");
-        home.controlLivingRoomLight("off");
-        home.controlBedroomLight("off");
-        home.controlSecurity("disarm");
+        remote.controlLivingRoomLight("off");
+        remote.controlBedroomLight("off");
+        remote.controlSecurity("disarm");
 
-        home.showAllStatus();
+        remote.showAllStatus();
     }
 }
