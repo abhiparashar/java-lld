@@ -244,9 +244,9 @@ class LightBrightnessCommand implements Command{
     }
 }
 
+// Concrete Commands for Thermostat Operations
 class ThermostatOnCommand implements Command{
     private final Thermostat thermostat;
-    private int previousTemperature;
     private boolean previousState;
 
     ThermostatOnCommand(Thermostat thermostat) {
@@ -269,6 +269,60 @@ class ThermostatOnCommand implements Command{
     @Override
     public String getDescription() {
         return "Turn ON " + thermostat.getLocation() + " thermostat";
+    }
+}
+
+class ThermostatOffCommand implements Command{
+    private final Thermostat thermostat;
+    private boolean previousState;
+
+    ThermostatOffCommand(Thermostat thermostat) {
+        this.thermostat = thermostat;
+    }
+
+    @Override
+    public void execute() {
+        previousState = thermostat.isOn();
+        thermostat.turnOff();
+    }
+
+    @Override
+    public void undo() {
+        if(previousState){
+            thermostat.turnOn();
+        }
+    }
+
+    @Override
+    public String getDescription() {
+        return "Turn OFF " + thermostat.getLocation() + " thermostat";
+    }
+}
+
+class ThermostatSetTemperatureCommand implements Command{
+    private final Thermostat thermostat;
+    private final int newTemperature;
+    private int previousTemperature;
+
+    ThermostatSetTemperatureCommand(Thermostat thermostat, int newTemperature) {
+        this.thermostat = thermostat;
+        this.newTemperature = newTemperature;
+    }
+
+    @Override
+    public void execute() {
+        previousTemperature = thermostat.getCurrentTemperature();
+        thermostat.setTemperature(newTemperature);
+    }
+
+    @Override
+    public void undo() {
+        thermostat.setTemperature(previousTemperature);
+    }
+
+    @Override
+    public String getDescription() {
+        return "Set " + thermostat.getLocation() + " thermostat to " + newTemperature + "°F";
     }
 }
 
